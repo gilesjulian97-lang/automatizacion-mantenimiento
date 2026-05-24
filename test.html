@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test</title></head>
+<body>
+<div id="msg" style="font-size:20px;padding:20px">Cargando...</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script>
+window.addEventListener('load', async function() {
+  const el = document.getElementById('msg');
+  if (typeof supabase === 'undefined') {
+    el.textContent = 'ERROR: supabase no cargó';
+    el.style.color = 'red';
+    return;
+  }
+  try {
+    const sb = supabase.createClient(
+      'https://eaeuqcdcnkztttkfvbut.supabase.co',
+      'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3'
+    );
+    const {data, error} = await sb.from('users').select('name');
+    if (error) {
+      el.textContent = 'Error Supabase: ' + error.message;
+      el.style.color = 'orange';
+    } else {
+      el.textContent = 'OK: ' + data.map(u=>u.name).join(', ');
+      el.style.color = 'green';
+    }
+  } catch(e) {
+    el.textContent = 'Exception: ' + e.message;
+    el.style.color = 'red';
+  }
+});
+</script>
+</body>
+</html>
