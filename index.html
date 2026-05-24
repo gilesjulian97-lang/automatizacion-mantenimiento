@@ -585,6 +585,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // STATE
 // --------------------------------------
 let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
+let selectedDayTec = new Date();
 let pinBuffer = '', selectedUserId = null, timers = {};
 let pendingStartActId = null;
 
@@ -1971,6 +1972,30 @@ async function addTecToToday(el){
   if(r.error){showToast('Error','error');return;}
   showToast('Agregada a hoy','success');
   tecSubTab('hoy'); loadTecnicoToday();
+}
+
+function updateTecDayHeader(){
+  var dayNames=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  var monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var today=new Date(); today.setHours(0,0,0,0);
+  var sel=new Date(selectedDayTec); sel.setHours(0,0,0,0);
+  var diff=Math.round((sel-today)/86400000);
+  var prefix=diff===0?'HOY - ':diff===1?'MANANA - ':diff===-1?'AYER - ':'';
+  var dn=document.getElementById('tec-day-name');
+  var dd=document.getElementById('tec-day-date');
+  if(dn) dn.textContent=prefix+dayNames[selectedDayTec.getDay()].toUpperCase();
+  if(dd) dd.textContent=selectedDayTec.getDate()+' de '+monthNames[selectedDayTec.getMonth()]+' '+selectedDayTec.getFullYear();
+  var nt=document.getElementById('tec-name-title');
+  if(nt) nt.textContent='Semana actual';
+}
+
+function cambiarDiaTec(delta){
+  selectedDayTec=new Date(selectedDayTec);
+  selectedDayTec.setDate(selectedDayTec.getDate()+delta);
+  var d=selectedDayTec.toISOString().split('T')[0];
+  var mw=allWeeks.find(function(w){return d>=w.start_date&&d<=w.end_date;});
+  if(mw) selectedWeekId=mw.id;
+  loadTecnicoToday();
 }
 
 function showToast(msg, type='') {
