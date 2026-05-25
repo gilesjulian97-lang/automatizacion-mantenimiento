@@ -536,6 +536,7 @@ async function loadTecnicoToday() {
   const pct = wTotal ? Math.round(wDone/wTotal*100) : 0;
   document.getElementById('tec-pct').textContent = pct + '%';
   document.getElementById('tec-bar').style.width = pct + '%';
+  loadTecWeekOverview();
   // Get non-fixed activities for this exact date
   const { data: dayActs } = await sb.from('activities').select('*')
     .eq('assigned_to', currentUser.id)
@@ -713,3 +714,52 @@ async function moveToTomorrow(id, e) {
   showToast('Movida a ma&#241;ana &#10003;', 'success'); loadTecnicoToday();
 }
 // ACTIVITY ACTIONS
+async function loadTecWeekOverview() {
+  const el = document.getElementById('tec-week-overview');
+  if(!el || !currentUser || !sb) return;
+  const viewDate = selectedDayTec.toISOString().split('T')[0];
+  const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
+  if(!mw) return;
+  const { data: weekActs } = await sb.from('activities').select('scheduled_date,status,is_fixed')
+    .eq('assigned_to', currentUser.id).eq('week_id', mw.id);
+  const days = ['L','M','X','J','V','S'];
+  const dowMap = [1,2,3,4,5,6];
+  const wStart = new Date(mw.start_date + 'T12:00:00');
+  const todayStr = new Date().toISOString().split('T')[0];
+  el.innerHTML = dowMap.map(function(dow, i) {
+    var d = new Date(wStart);
+    var diff = (dow - wStart.getDay() + 7) % 7;
+    d.setDate(wStart.getDate() + diff);
+    var dateStr = d.toISOString().split('T')[0];
+    var isSelected = dateStr === viewDate;
+    var isToday = dateStr === todayStr;
+    var dayActs = (weekActs||[]).filter(function(a){ return a.scheduled_date === dateStr && !a.is_fixed; });
+    var fixedCount = (weekActs||[]).filter(function(a){ return a.scheduled_date === dateStr && a.is_fixed; }).length;
+    var done = dayActs.filter(function(a){ return a.status === 'completada'; }).length;
+    var total = dayActs.length;
+    var pct = total ? Math.round(done/total*100) : -1;
+    var bg, border, tc;
+    if(isSelected){ bg='var(--orange)'; border='var(--orange)'; tc='#fff'; }
+    else if(pct===100){ bg='rgba(21,128,61,.1)'; border='rgba(21,128,61,.4)'; tc='var(--green)'; }
+    else if(pct>0){ bg='rgba(234,88,12,.06)'; border='rgba(234,88,12,.3)'; tc='var(--orange)'; }
+    else if(total>0){ bg='var(--card)'; border='var(--border2)'; tc='var(--text)'; }
+    else{ bg='var(--card)'; border='var(--border)'; tc='var(--muted)'; }
+    var todayDot = isToday && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin:2px auto 0"></div>' : '';
+    var fixedDot = fixedCount>0 ? '<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">'
+      + Array.from({length:Math.min(fixedCount,3)}).map(function(){ return '<div style="width:3px;height:3px;border-radius:50%;background:var(--fixed);opacity:.7"></div>'; }).join('')
+      + '</div>' : '';
+    return '<div data-date="'+dateStr+'" onclick="tecJumpToDay(this.dataset.date)" style="flex:1;min-width:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">'
+      + '<div style="font-size:.6rem;font-weight:700;color:'+tc+'">'+days[i]+'</div>'
+      + '<div style="font-size:.72rem;font-weight:600;color:'+tc+';line-height:1.3">'+d.getDate()+'</div>'
+      + (total>0 ? '<div style="font-size:.5rem;color:'+tc+';opacity:.85">'+done+'/'+total+'</div>' : '<div style="font-size:.5rem;color:var(--muted)">libre</div>')
+      + fixedDot + todayDot
+      + '</div>';
+  }).join('');
+}
+
+function tecJumpToDay(dateStr) {
+  selectedDayTec = new Date(dateStr + 'T12:00:00');
+  var mw = allWeeks.find(function(w){ return dateStr >= w.start_date && dateStr <= w.end_date; });
+  if(mw) selectedWeekId = mw.id;
+  loadTecnicoToday();
+}
