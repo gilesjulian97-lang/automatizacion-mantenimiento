@@ -693,7 +693,15 @@ function closeConfirm() { document.getElementById('confirm-overlay').classList.r
 async function confirmStart() {
   if (!pendingStartActId) return;
   closeConfirm();
-  await startActivity(pendingStartActId);
+  const id = pendingStartActId;
+  pendingStartActId = null;
+  const { error } = await sb.from('activities').update({
+    status: 'en_progreso',
+    started_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) { showToast('Error al iniciar', 'error'); return; }
+  showToast('Actividad iniciada', 'success');
+  loadTecnicoToday();
 }
 async function addToToday(id, e) {
   if (e) e.stopPropagation();
