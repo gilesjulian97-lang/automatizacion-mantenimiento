@@ -1,9 +1,4 @@
-async function startActivity(id) {
-  const { error } = await sb.from('activities').update({ status:'en_progreso', started_at: new Date().toISOString() }).eq('id', id);
-  if (error) { showToast('Error', 'error'); return; }
-  showToast('Actividad iniciada &#9654;', 'success');
-  loadTecnicoToday(); loadTecnicoList();
-}
+
 async function finishActivity(id, e) {
   if (e) e.stopPropagation();
   const { data } = await sb.from('activities').select('started_at,title').eq('id',id).single();
