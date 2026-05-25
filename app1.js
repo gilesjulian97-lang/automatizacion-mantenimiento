@@ -35,7 +35,7 @@ moe4LaKIjJxFYg97zNCKmqw=\
 -----END PRIVATE KEY-----\
 '
 };
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb = null;
 // STATE
 let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
 let selectedDayTec = new Date();
@@ -43,6 +43,7 @@ let pinBuffer = '', selectedUserId = null, timers = {};
 let pendingStartActId = null;
 // INIT
 async function init() {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const [{ data: users }, { data: weeks }] = await Promise.all([
     sb.from('users').select('*').order('created_at'),
     sb.from('weeks').select('*').order('start_date', { ascending: false })
@@ -509,6 +510,7 @@ function tecSelectWeek(id, el) {
   el.classList.add('active'); loadTecnicoList();
 }
 async function loadTecnicoToday() {
+  if(!sb || !currentUser) { console.error('sb or currentUser not ready'); return; }
   if(!selectedDayTec) selectedDayTec = new Date();
   updateTecDayHeader();
   const viewDate = selectedDayTec.toISOString().split('T')[0];
@@ -555,8 +557,7 @@ async function loadTecnicoToday() {
     const { data: fixedFallback } = await sb.from('activities').select('*')
       .eq('assigned_to', currentUser.id)
       .eq('is_fixed', true)
-      .gte('scheduled_date', past.toISOString().split('T')[0])
-      .lte('scheduled_date', viewDate);
+      .gte('scheduled_date', past.toISOString().split('T')[0]);
     // Filter by same DOW
     const seen = {};
     (fixedFallback || []).forEach(a => {
