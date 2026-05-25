@@ -206,7 +206,7 @@ async function loadDashboard() {
 function renderActCardSup(a) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
-  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
+  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div class="timer-display" id="timer-sup-'+a.id+'" data-started="'+(a.started_at||'')+'">00:00:00</div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
     <div class="act-status-dot dot-${a.status}"></div>
@@ -604,7 +604,8 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="startDirectly(this.dataset.id)">&#9654; Iniciar</button>';
     if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    actionBtns = '<div class="timer-display" id="timer-' + a.id + '">00:00:00</div>'
+    var startedAt = a.started_at || '';
+    actionBtns = '<div class="timer-display" id="timer-' + a.id + '" data-started="' + startedAt + '">00:00:00</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
       + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>'
       + '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="cancelStart(this.dataset.id)" style="border-color:var(--red);color:var(--red)">&#10005; Cancelar inicio</button>'
@@ -614,7 +615,7 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = `<span style="color:var(--green);font-size:.78rem;font-family:DM Mono">&#10003; Completada ${dur?'&middot; '+dur:''}</span>`;
   }
   if (fromList && a.status==='pendiente') {
-    actionBtns = `<button class="btn btn-accent btn-sm" onclick="addToToday('${a.id}',event)">+ Agregar a mi d&#237;a</button>`;
+    actionBtns = `<button class="btn btn-accent btn-sm" style="color:#fff" onclick="addToToday('${a.id}',event)">+ Agregar a mi d&#237;a</button>`;
   }
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardTec('${a.id}')">
@@ -651,7 +652,11 @@ function toggleCardTec(id) {
   const card = document.getElementById('card-'+id);
   if (card.classList.toggle('open')) {
     loadComments(id); loadImages(id);
-    if (document.getElementById('timer-'+id)) startTimerDisplay(id);
+    const timerEl = document.getElementById('timer-'+id);
+    if (timerEl) {
+      const startedAt = timerEl.dataset.started || null;
+      startTimerDisplay(id, startedAt);
+    }
   }
 }
 // CONFIRM START
@@ -763,13 +768,19 @@ function tecJumpToDay(dateStr) {
 
 async function startDirectly(id) {
   if(!id || id === 'null') return;
+  const startedAt = new Date().toISOString();
   const { error } = await sb.from('activities').update({
     status: 'en_progreso',
-    started_at: new Date().toISOString()
+    started_at: startedAt
   }).eq('id', id);
   if(error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Actividad iniciada', 'success');
-  loadTecnicoToday();
+  await loadTecnicoToday();
+  // Start timer immediately after reload
+  setTimeout(function(){
+    const timerEl = document.getElementById('timer-'+id);
+    if(timerEl) startTimerDisplay(id, startedAt);
+  }, 300);
 }
 
 async function cancelStart(id) {
