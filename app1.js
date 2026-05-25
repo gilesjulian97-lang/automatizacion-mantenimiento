@@ -618,7 +618,7 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = `<button class="btn btn-accent btn-sm" style="color:#fff" onclick="addToToday('${a.id}',event)">+ Agregar a mi d&#237;a</button>`;
   }
   return `<div class="act-card" id="card-${a.id}">
-    <div class="act-card-header" onclick="toggleCardTec('${a.id}')">
+    <div class="act-card-header" data-cid="${a.id}" onclick="toggleCardTec(this.dataset.cid)">
     <div class="act-status-dot dot-${a.status}"></div>
     <div class="act-card-info">
     <div class="act-card-title">${a.title}</div>
@@ -650,13 +650,13 @@ function renderActCardTec(a, fromList=false) {
 }
 function toggleCardTec(id) {
   const card = document.getElementById('card-'+id);
-  if (card.classList.toggle('open')) {
-    loadComments(id); loadImages(id);
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  if (isOpen) {
+    loadComments(id);
+    loadImages(id);
     const timerEl = document.getElementById('timer-'+id);
-    if (timerEl) {
-      const startedAt = timerEl.dataset.started || null;
-      startTimerDisplay(id, startedAt);
-    }
+    if (timerEl) startTimerDisplay(id, timerEl.dataset.started || null);
   }
 }
 // CONFIRM START
