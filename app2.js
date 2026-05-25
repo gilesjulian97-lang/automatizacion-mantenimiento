@@ -11,13 +11,15 @@ async function finishActivity(id, e) {
   createDriveFolder(id, data?.title || 'Actividad');
   loadTecnicoToday(); loadTecnicoList();
 }
-function startTimerDisplay(id) {
+function startTimerDisplay(id, startedAt) {
   const el = document.getElementById('timer-'+id);
-  if (!el || timers[id]) return;
-  // Use current time as start - avoids timezone issues
-  const startTime = Date.now();
+  if (!el) return;
+  if (timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  // Use started_at from element data attribute, parameter, or now
+  const sa = startedAt || el.dataset.started || null;
+  const start = sa ? new Date(sa) : new Date();
   timers[id] = setInterval(function(){
-    const diff = Math.floor((Date.now() - startTime) / 1000);
+    const diff = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
     const h = String(Math.floor(diff/3600)).padStart(2,'0');
     const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
     const s = String(diff%60).padStart(2,'0');
@@ -121,11 +123,27 @@ async function addComment(actId) {
   input.value = ''; loadComments(actId); showToast('Comentario enviado', 'success');
 }
 // IMAGES LOAD
-async function loadImages(actId) {
-  const { data } = await sb.from('activity_images').select('*').eq('activity_id',actId);
-  const el = document.getElementById('imgs-'+actId); if (!el) return;
-  if (!data||data.length===0) { el.innerHTML=''; return; }
-  el.innerHTML = data.map(img=>`<a class="img-thumb" href="${img.drive_file_url}" target="_blank">${img.filename||'Ver'}</a>`).join('');
+async function loadImages(actId, containerId) {
+  var elId = containerId || 'imgs-'+actId;
+  var r = await sb.from('activity_images').select('*').eq('activity_id', actId);
+  var el = document.getElementById(elId);
+  if(!el) return;
+  var data = r.data;
+  if(!data || !data.length){ el.innerHTML = ''; return; }
+  var html = '';
+  data.forEach(function(img){
+    var url = img.drive_file_url || '';
+    var parts = url.split('/d/');
+    var fileId = parts.length > 1 ? parts[1].split('/')[0] : null;
+    html += '<a href="' + url + '" target="_blank" class="img-thumb" style="display:block">';
+    if(fileId) {
+      html += '<img src="https://lh3.googleusercontent.com/d/' + fileId + '=w200" ';
+      html += 'style="width:100%;height:80px;object-fit:cover;border-radius:6px;display:block">';
+    }
+    html += '<div style="font-size:.55rem;color:var(--muted);padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
+    html += (img.filename || 'foto') + '</div></a>';
+  });
+  el.innerHTML = html;
 }
 // EDIT DESCRIPTION
 function openEditDesc(id, encodedDesc) {
