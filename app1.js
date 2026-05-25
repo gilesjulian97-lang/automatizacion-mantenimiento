@@ -533,11 +533,40 @@ async function loadTecnicoToday() {
   const pct = wTotal ? Math.round(wDone/wTotal*100) : 0;
   document.getElementById('tec-pct').textContent = pct + '%';
   document.getElementById('tec-bar').style.width = pct + '%';
-  const { data: acts } = await sb.from('activities').select('*')
+  // Get non-fixed activities for this exact date
+  const { data: dayActs } = await sb.from('activities').select('*')
     .eq('assigned_to', currentUser.id)
-    .eq('scheduled_date', viewDate);
-  const fixed = (acts||[]).filter(a => a.is_fixed);
-  const nonFixed = (acts||[]).filter(a => !a.is_fixed);
+    .eq('scheduled_date', viewDate)
+    .eq('is_fixed', false);
+  const nonFixed = dayActs || [];
+
+  // Get fixed activities: first try exact date, then fall back to same DOW
+  const { data: fixedExact } = await sb.from('activities').select('*')
+    .eq('assigned_to', currentUser.id)
+    .eq('scheduled_date', viewDate)
+    .eq('is_fixed', true);
+
+  let fixed = fixedExact || [];
+
+  // Fallback: if no fixed for this exact date, find same day-of-week from past 90 days
+  if(!fixed.length) {
+    const past = new Date(viewDate + 'T12:00:00');
+    past.setDate(past.getDate() - 90);
+    const { data: fixedFallback } = await sb.from('activities').select('*')
+      .eq('assigned_to', currentUser.id)
+      .eq('is_fixed', true)
+      .gte('scheduled_date', past.toISOString().split('T')[0])
+      .lte('scheduled_date', viewDate);
+    // Filter by same DOW
+    const seen = {};
+    (fixedFallback || []).forEach(a => {
+      if(!a.scheduled_date) return;
+      const dow = new Date(a.scheduled_date + 'T12:00:00').getDay();
+      if(dow !== viewDow) return;
+      const k = a.title + '|' + (a.scheduled_start||'');
+      if(!seen[k]) { seen[k] = true; fixed.push(a); }
+    });
+  }
   const fixedEl = document.getElementById('tec-fixed-today');
   if(fixedEl) {
     if(!fixed.length) {
