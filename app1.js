@@ -581,7 +581,7 @@ async function loadTecnicoToday() {
   } else {
     todayEl.innerHTML = nonFixed.map(a => renderActCardTec(a, false)).join('');
     nonFixed.filter(a => a.status === 'en_progreso').forEach(a => {
-    if(document.getElementById('timer-' + a.id)) startTimerDisplay(a.id);
+
     });
   }
 }
@@ -604,9 +604,9 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="startDirectly(this.dataset.id)">&#9654; Iniciar</button>';
     if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    var startedAt = a.started_at || '';
-    actionBtns = '<div class="timer-display" id="timer-' + a.id + '" data-started="' + startedAt + '">00:00:00</div>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+    var startStr = a.started_at ? new Date(a.started_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+    actionBtns = '<div style="font-size:.75rem;color:var(--muted2);margin-bottom:8px;font-family:monospace">&#9654; Iniciado a las ' + startStr + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
       + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>'
       + '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="cancelStart(this.dataset.id)" style="border-color:var(--red);color:var(--red)">&#10005; Cancelar inicio</button>'
       + '</div>';
@@ -651,12 +651,9 @@ function renderActCardTec(a, fromList=false) {
 function toggleCardTec(id) {
   const card = document.getElementById('card-'+id);
   if (!card) return;
-  const isOpen = card.classList.toggle('open');
-  if (isOpen) {
+  if (card.classList.toggle('open')) {
     loadComments(id);
     loadImages(id);
-    const timerEl = document.getElementById('timer-'+id);
-    if (timerEl) startTimerDisplay(id, timerEl.dataset.started || null);
   }
 }
 // CONFIRM START
