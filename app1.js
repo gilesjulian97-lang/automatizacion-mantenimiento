@@ -630,10 +630,10 @@ function renderActCardTec(a, fromList=false) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   let actionBtns = '';
   if (a.status==='pendiente') {
-    actionBtns = `<button class="btn btn-start btn-sm" onclick="showConfirm('${a.id}',event)">&#9654; Iniciar</button>`;
-    if (!fromList) actionBtns += `<button class="btn btn-outline btn-sm" onclick="moveToTomorrow('${a.id}',event)">&#8631; Mover a ma&#241;ana</button>`;
+    actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="showConfirm(this.dataset.id,event)">&#9654; Iniciar</button>';
+    if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    actionBtns = `<div class="timer-display" id="timer-${a.id}">00:00:00</div><button class="btn btn-finish btn-sm" onclick="finishActivity('${a.id}',event)">&#10003; Finalizar</button>`;
+    actionBtns = '<div class="timer-display" id="timer-' + a.id + '">00:00:00</div><button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>';
   } else if (a.status==='completada') {
     const dur = a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';
     actionBtns = `<span style="color:var(--green);font-size:.78rem;font-family:DM Mono">&#10003; Completada ${dur?'&middot; '+dur:''}</span>`;
@@ -691,21 +691,17 @@ function showConfirm(actId, e) {
 }
 function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); pendingStartActId=null; }
 async function confirmStart() {
-  if (!pendingStartActId) return;
+  if (!pendingStartActId || pendingStartActId === 'null') return;
   closeConfirm();
   const id = pendingStartActId;
   pendingStartActId = null;
-  try {
-    const { data, error } = await sb.from('activities').update({
-      status: 'en_progreso',
-      started_at: new Date().toISOString()
-    }).eq('id', id).select();
-    if(error) { showToast('Error: ' + error.message, 'error'); return; }
-    showToast('Actividad iniciada', 'success');
-    loadTecnicoToday();
-  } catch(e) {
-    showToast('Excepcion: ' + e.message, 'error');
-  }
+  const { error } = await sb.from('activities').update({
+    status: 'en_progreso',
+    started_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Actividad iniciada', 'success');
+  loadTecnicoToday();
 }
 async function addToToday(id, e) {
   if (e) e.stopPropagation();
