@@ -210,8 +210,8 @@ async function loadSupLista(){
   el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
   var r=await sb.from('activities').select('*').eq('is_fixed',false).order('scheduled_month').order('created_at');
   var acts=r.data||[];
-  if(!acts.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">OK</div><div class="empty-text">Sin actividades</div></div>';return;}
-  var pendientes=acts.filter(function(a){return a.status!=='completada';});
+  if(!acts.length){el.innerHTML='<div class="empty-state"><div class="empty-text">Sin actividades pendientes</div></div>';return;}
+  var pendientes=acts.filter(function(a){return a.status==='pendiente'||a.status==='en_progreso'||a.status==='revisar';});
   var completadas=acts.filter(function(a){return a.status==='completada';}).sort(function(a,b){return new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at);});
   var currentMonth=new Date().toISOString().substring(0,7);
   var preventivos=pendientes.filter(function(a){return a.type==='preventivo';});
