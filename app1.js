@@ -517,6 +517,9 @@ async function loadTecnicoToday() {
   const todayStr = new Date().toISOString().split('T')[0];
   const isToday = viewDate === todayStr;
   const viewDow = new Date(viewDate + 'T12:00:00').getDay();
+  // TEMP DEBUG: show user ID in subtitle
+  const dbgEl = document.getElementById('tec-day-date');
+  if(dbgEl) dbgEl.textContent = viewDate + ' | uid:' + (currentUser ? currentUser.id.slice(0,8) : 'NULL');
   if(viewDow === 0) {
     const fe = document.getElementById('tec-fixed-today');
     const te = document.getElementById('tec-today-acts');
