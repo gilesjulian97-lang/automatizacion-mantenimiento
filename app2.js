@@ -18,7 +18,7 @@ function startTimerDisplay(id) {
     if (!data?.started_at) return;
     const start = new Date(data.started_at);
     timers[id] = setInterval(()=>{
-    const diff=Math.floor((new Date()-start)/1000);
+    const diff=Math.max(0, Math.floor((new Date()-start)/1000));
     const h=String(Math.floor(diff/3600)).padStart(2,'0');
     const m=String(Math.floor((diff%3600)/60)).padStart(2,'0');
     const s=String(diff%60).padStart(2,'0');
@@ -31,43 +31,75 @@ function startTimerDisplay(id) {
 let driveToken = null;
 let driveTokenExpiry = 0;
 async function handleImageUpload(actId, input) {
-  const files = Array.from(input.files); if (!files.length) return;
-  showToast('Subiendo im&#225;genes a Drive...', 'success');
-  try {
-    const { data: act } = await sb.from('activities').select('title,drive_folder_url').eq('id',actId).single();
-    let folderId = null;
-    if (act?.drive_folder_url) {
-    folderId = act.drive_folder_url.split('/').pop();
-    } else {
-    folderId = await createDriveFolder(actId, act?.title || 'Actividad');
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  showToast('Subiendo ' + files.length + ' imagen(es)...', 'success');
+
+  // Get activity details
+  const { data: act } = await sb.from('activities').select('title, week_id, scheduled_date').eq('id', actId).single();
+  const actTitle = act?.title || 'Actividad';
+
+  // Get week label for folder structure
+  const week = allWeeks.find(w => w.id === act?.week_id);
+  const weekLabel = week ? week.label : 'Semana sin etiqueta';
+
+  // Get month label
+  const date = act?.scheduled_date ? new Date(act.scheduled_date + 'T12:00:00') : new Date();
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const monthLabel = monthNames[date.getMonth()] + ' ' + date.getFullYear();
+
+  let uploadedCount = 0;
+  for(const file of files) {
+    try {
+      // Convert to base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g,'-').substring(0,19);
+      const fileName = actTitle.substring(0,30).replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '.jpg';
+
+      // Send to Apps Script
+      const response = await fetch('https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          activityTitle: actTitle,
+          monthLabel: monthLabel,
+          weekLabel: weekLabel,
+          fileName: fileName,
+          fileBase64: base64,
+          mimeType: file.type || 'image/jpeg',
+          uploadedBy: currentUser.name
+        })
+      });
+
+      const result = await response.json();
+      if(!result.success) throw new Error(result.error || 'Error desconocido');
+
+      // Save to Supabase
+      await sb.from('activity_images').insert({
+        activity_id: actId,
+        drive_file_url: result.fileUrl,
+        filename: fileName,
+        uploaded_by: currentUser.id
+      });
+
+      uploadedCount++;
+    } catch(err) {
+      showToast('Error subiendo ' + file.name + ': ' + err.message, 'error');
     }
-    if (!folderId) { showToast('Error al conectar con Drive', 'error'); return; }
-    const token = await getDriveToken(); if (!token) return;
-    for (const file of files) {
-    const actTitle = (act?.title||'actividad').replace(/[^a-zA-Z0-9&#225;&#233;&#237;&#243;&#250;\u00c1\u00c9\u00cd&#211;\u00da&#241;\u00d1\s]/g,'').trim().substring(0,50).replace(/\s+/g,'_');
-    const timestamp = new Date().toISOString().replace(/[:.]/g,'-').substring(0,19);
-    const fileName = `${actTitle}_${timestamp}.jpg`;
-    const metadata = { name: fileName, parents: [folderId] };
-    const formData = new FormData();
-    formData.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
-    formData.append('file', file, fileName);
-    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-    method:'POST', headers:{'Authorization':`Bearer ${token}`}, body: formData
-    });
-    const uploaded = await uploadRes.json();
-    await fetch(`https://www.googleapis.com/drive/v3/files/${uploaded.id}/permissions`, {
-    method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
-    body: JSON.stringify({ role:'reader', type:'anyone' })
-    });
-    await sb.from('activity_images').insert({
-    activity_id: actId, drive_file_url: uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`,
-    filename: fileName, uploaded_by: currentUser.id
-    });
-    }
-    showToast(`${files.length} imagen(es) subida(s) a Drive &#10003;`, 'success');
+  }
+
+  if(uploadedCount > 0) {
+    showToast(uploadedCount + ' imagen(es) subida(s) a Drive', 'success');
     loadImages(actId);
-  } catch(e) { console.error('Upload error:', e); showToast('Error al subir im&#225;genes', 'error'); }
+  }
 }
+
 // COMMENTS
 async function loadComments(actId) {
   const { data } = await sb.from('comments').select('*, users!comments_user_id_fkey(name)').eq('activity_id',actId).order('created_at');
@@ -332,4 +364,14 @@ async function loadJulianList(){
   if(pEl)pEl.innerHTML=all.filter(function(a){return a.status==='en_progreso';}).map(mkRow).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades en progreso</div>';
   if(pendEl)pendEl.innerHTML=all.filter(function(a){return a.status==='pendiente'||a.status==='revisar';}).map(mkRow).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades pendientes</div>';
   if(doneEl)doneEl.innerHTML=all.filter(function(a){return a.status==='completada';}).sort(function(a,b){return new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at);}).map(mkRow).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades completadas</div>';
+}
+async function supCancelStart(id) {
+  if(!id || id === 'null') return;
+  const { error } = await sb.from('activities').update({
+    status: 'pendiente',
+    started_at: null
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  showToast('Inicio cancelado', 'success');
+  loadDashboard();
 }
