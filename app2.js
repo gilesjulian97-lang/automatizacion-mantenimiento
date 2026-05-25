@@ -1,15 +1,20 @@
 
 async function finishActivity(id, e) {
   if (e) e.stopPropagation();
-  const { data } = await sb.from('activities').select('started_at,title').eq('id',id).single();
-  const started = data?.started_at ? new Date(data.started_at) : new Date();
-  const mins = Math.round((new Date()-started)/60000);
-  const { error } = await sb.from('activities').update({ status:'completada', finished_at: new Date().toISOString(), duration_minutes: mins }).eq('id', id);
-  if (error) { showToast('Error', 'error'); return; }
-  if (timers[id]) { clearInterval(timers[id]); delete timers[id]; }
-  showToast(`Completada en ${Math.floor(mins/60)}h ${mins%60}m &#10003;`, 'success');
-  createDriveFolder(id, data?.title || 'Actividad');
-  loadTecnicoToday(); loadTecnicoList();
+  const { data } = await sb.from('activities').select('started_at').eq('id',id).single();
+  const now = new Date();
+  const started = data?.started_at ? new Date(data.started_at) : now;
+  const mins = Math.max(0, Math.round((now - started) / 60000));
+  const { error } = await sb.from('activities').update({
+    status: 'completada',
+    finished_at: now.toISOString(),
+    duration_minutes: mins
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  if(timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  const h = Math.floor(mins/60), m = mins%60;
+  showToast('Completada' + (h||m ? ' en ' + (h?h+'h ':'') + m+'m' : '') + ' &#10003;', 'success');
+  loadTecnicoToday();
 }
 function startTimerDisplay(id, startedAt) {
   const el = document.getElementById('timer-'+id);

@@ -579,10 +579,24 @@ async function loadTecnicoToday() {
     + (isToday ? 'Sin actividades para hoy.<br>Ve a Lista completa para agregar una.' : 'Sin actividades este dia.')
     + '</div></div>';
   } else {
-    todayEl.innerHTML = nonFixed.map(a => renderActCardTec(a, false)).join('');
-    nonFixed.filter(a => a.status === 'en_progreso').forEach(a => {
+    // Split active vs completed
+    var activeActs = nonFixed.filter(function(a){ return a.status !== 'completada'; });
+    var doneActs = nonFixed.filter(function(a){ return a.status === 'completada'; });
 
-    });
+    todayEl.innerHTML = activeActs.length
+      ? activeActs.map(function(a){ return renderActCardTec(a, false); }).join('')
+      : '<div style="color:var(--muted);font-size:.8rem;padding:8px 0">Sin actividades pendientes</div>';
+
+    var doneSection = document.getElementById('tec-completed-section');
+    var doneEl = document.getElementById('tec-today-done');
+    if(doneSection && doneEl) {
+      if(doneActs.length) {
+        doneSection.style.display = 'block';
+        doneEl.innerHTML = doneActs.map(function(a){ return renderActCardTec(a, false); }).join('');
+      } else {
+        doneSection.style.display = 'none';
+      }
+    }
   }
 }
 async function loadTecnicoList() {
