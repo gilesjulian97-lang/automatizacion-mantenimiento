@@ -555,8 +555,11 @@ async function loadTecnicoToday() {
     return;
   }
   if(fixedEl2 && !fixedErr) {
-    // Show count for debugging
-    fixedEl2.dataset.debug = 'found ' + (fixedExact||[]).length + ' fixed for ' + viewDate + ' user:' + currentUser.id;
+    fixedEl2.innerHTML = '<div style="background:#e8f4fd;border:1px solid #3b82f6;border-radius:8px;padding:10px;font-size:.75rem;font-family:monospace">'
+      + 'Usuario ID: ' + currentUser.id + '<br>'
+      + 'Fecha: ' + viewDate + '<br>'
+      + 'Fijas encontradas: ' + (fixedExact||[]).length
+      + '</div>';
   }
 
   let fixed = fixedExact || [];
