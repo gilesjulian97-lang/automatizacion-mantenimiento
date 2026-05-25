@@ -682,8 +682,16 @@ function toggleCardTec(id) {
 // CONFIRM START
 function showConfirm(actId, e) {
   if (e) e.stopPropagation();
+  if(!actId || actId === 'null' || actId === 'undefined') {
+    showToast('Error: ID invalido', 'error');
+    return;
+  }
+  // Store in button data attribute - more reliable than global var
+  const confirmBtn = document.querySelector('#confirm-overlay .btn-start');
+  if(confirmBtn) confirmBtn.dataset.actid = actId;
   pendingStartActId = actId;
-  sb.from('activities').select('title,description').eq('id',actId).single().then(({data})=>{
+  sb.from('activities').select('title,description').eq('id',actId).single().then(function(r){
+    const data = r.data;
     document.getElementById('confirm-title').textContent = data?.title || 'Confirmar actividad';
     document.getElementById('confirm-desc').textContent = data?.description || 'Ejecutar siguiendo los procedimientos establecidos.';
     document.getElementById('confirm-overlay').classList.add('open');
@@ -691,10 +699,16 @@ function showConfirm(actId, e) {
 }
 function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); pendingStartActId=null; }
 async function confirmStart() {
-  if (!pendingStartActId || pendingStartActId === 'null') return;
+  // Get ID from button dataset as primary source
+  const confirmBtn = document.querySelector('#confirm-overlay .btn-start');
+  const id = (confirmBtn && confirmBtn.dataset.actid) ? confirmBtn.dataset.actid : pendingStartActId;
+  if (!id || id === 'null' || id === 'undefined') {
+    showToast('Error: no hay actividad seleccionada', 'error');
+    return;
+  }
   closeConfirm();
-  const id = pendingStartActId;
   pendingStartActId = null;
+  if(confirmBtn) confirmBtn.dataset.actid = '';
   const { error } = await sb.from('activities').update({
     status: 'en_progreso',
     started_at: new Date().toISOString()
