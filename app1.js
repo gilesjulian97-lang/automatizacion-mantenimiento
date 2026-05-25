@@ -630,10 +630,14 @@ function renderActCardTec(a, fromList=false) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   let actionBtns = '';
   if (a.status==='pendiente') {
-    actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="showConfirm(this.dataset.id,event)">&#9654; Iniciar</button>';
+    actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="startDirectly(this.dataset.id)">&#9654; Iniciar</button>';
     if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    actionBtns = '<div class="timer-display" id="timer-' + a.id + '">00:00:00</div><button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>';
+    actionBtns = '<div class="timer-display" id="timer-' + a.id + '">00:00:00</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
+      + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>'
+      + '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="cancelStart(this.dataset.id)" style="border-color:var(--red);color:var(--red)">&#10005; Cancelar inicio</button>'
+      + '</div>';
   } else if (a.status==='completada') {
     const dur = a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';
     actionBtns = `<span style="color:var(--green);font-size:.78rem;font-family:DM Mono">&#10003; Completada ${dur?'&middot; '+dur:''}</span>`;
@@ -783,5 +787,28 @@ function tecJumpToDay(dateStr) {
   selectedDayTec = new Date(dateStr + 'T12:00:00');
   var mw = allWeeks.find(function(w){ return dateStr >= w.start_date && dateStr <= w.end_date; });
   if(mw) selectedWeekId = mw.id;
+  loadTecnicoToday();
+}
+
+async function startDirectly(id) {
+  if(!id || id === 'null') return;
+  const { error } = await sb.from('activities').update({
+    status: 'en_progreso',
+    started_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Actividad iniciada', 'success');
+  loadTecnicoToday();
+}
+
+async function cancelStart(id) {
+  if(!id || id === 'null') return;
+  if(timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  const { error } = await sb.from('activities').update({
+    status: 'pendiente',
+    started_at: null
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  showToast('Inicio cancelado', 'success');
   loadTecnicoToday();
 }
