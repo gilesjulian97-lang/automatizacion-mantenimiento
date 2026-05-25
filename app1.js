@@ -543,10 +543,21 @@ async function loadTecnicoToday() {
   const nonFixed = dayActs || [];
 
   // Get fixed activities: first try exact date, then fall back to same DOW
-  const { data: fixedExact } = await sb.from('activities').select('*')
+  const { data: fixedExact, error: fixedErr } = await sb.from('activities').select('*')
     .eq('assigned_to', currentUser.id)
     .eq('scheduled_date', viewDate)
     .eq('is_fixed', true);
+
+  // Show debug info directly on screen
+  const fixedEl2 = document.getElementById('tec-fixed-today');
+  if(fixedErr && fixedEl2) {
+    fixedEl2.innerHTML = '<div style="color:red;font-size:.8rem;padding:8px;background:#fee">ERROR: ' + fixedErr.message + '<br>user: ' + currentUser.id + '<br>date: ' + viewDate + '</div>';
+    return;
+  }
+  if(fixedEl2 && !fixedErr) {
+    // Show count for debugging
+    fixedEl2.dataset.debug = 'found ' + (fixedExact||[]).length + ' fixed for ' + viewDate + ' user:' + currentUser.id;
+  }
 
   let fixed = fixedExact || [];
 
