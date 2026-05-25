@@ -517,9 +517,7 @@ async function loadTecnicoToday() {
   const todayStr = new Date().toISOString().split('T')[0];
   const isToday = viewDate === todayStr;
   const viewDow = new Date(viewDate + 'T12:00:00').getDay();
-  // TEMP DEBUG: show user ID in subtitle
-  const dbgEl = document.getElementById('tec-day-date');
-  if(dbgEl) dbgEl.textContent = viewDate + ' | uid:' + (currentUser ? currentUser.id.slice(0,8) : 'NULL');
+
   if(viewDow === 0) {
     const fe = document.getElementById('tec-fixed-today');
     const te = document.getElementById('tec-today-acts');
@@ -546,24 +544,12 @@ async function loadTecnicoToday() {
   const nonFixed = dayActs || [];
 
   // Get fixed activities: first try exact date, then fall back to same DOW
-  const { data: fixedExact, error: fixedErr } = await sb.from('activities').select('*')
+  const { data: fixedExact } = await sb.from('activities').select('*')
     .eq('assigned_to', currentUser.id)
     .eq('scheduled_date', viewDate)
     .eq('is_fixed', true);
 
-  // Show debug info directly on screen
-  const fixedEl2 = document.getElementById('tec-fixed-today');
-  if(fixedErr && fixedEl2) {
-    fixedEl2.innerHTML = '<div style="color:red;font-size:.8rem;padding:8px;background:#fee">ERROR: ' + fixedErr.message + '<br>user: ' + currentUser.id + '<br>date: ' + viewDate + '</div>';
-    return;
-  }
-  if(fixedEl2 && !fixedErr) {
-    fixedEl2.innerHTML = '<div style="background:#e8f4fd;border:1px solid #3b82f6;border-radius:8px;padding:10px;font-size:.75rem;font-family:monospace">'
-      + 'Usuario ID: ' + currentUser.id + '<br>'
-      + 'Fecha: ' + viewDate + '<br>'
-      + 'Fijas encontradas: ' + (fixedExact||[]).length
-      + '</div>';
-  }
+
 
   let fixed = fixedExact || [];
 
