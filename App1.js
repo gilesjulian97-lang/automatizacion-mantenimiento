@@ -5,24 +5,7 @@ const ANTHROPIC_KEY_PLACEHOLDER = 'USE_YOUR_ANTHROPIC_KEY'; // Se llena desde el
 const DRIVE_FOLDER_ID = '1c5gqD11F2szgL-EB5MYP2C4qg8g7nv7m';
 const SERVICE_ACCOUNT = {
   client_email: 'avimex-drive@automatizacionmay2026.iam.gserviceaccount.com',
-  private_key: '-----BEGIN PRIVATE KEY-----\n\
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCq7e34rJ/Dq/lU\n\
-WX8QJfwH1kPzty/LgQMc4MTewgzffmIRK3pPUPPXckrxEmwoLNOfTKjyPETTOSLF\n\
-UAoJxZWRpT3Db11ND4QX58DBHUe7KpldNIl6qnWZMm2+WlrBvU3O1h7yYFxMFtcT\n\
-Rl6FMtTDP8ht8Nzr2xKcFJyInjQtIVC1IERQrzbfodrzTuEVvZz7LuDlVRT15h7p\n\
-OC3gt3ArFalq5Qb/fCPnw4Qg/KL0FbmQEx80MW4/fglssNUIRZKR6yP6vkOveXFR\n\
-8e8yqFP4wcV894tYfSkuUQNAF/ljqN3B2hkKElxB6OrS+bi4SWLjV7NGfmBpYlzg\n\
-evQPo0qVAgMBAAECggEAIMfwRWqP2lY7Q0TFtFpgjz01u4Ikma4Eo49s2j7TerJR\n\
-ivLwalE/bpCGFF1A3mSYclrgpNJPrcWtqDM9NZoN4QiUg4xyU5LX9cC1zCN6LAhT\n\
-sNcgTaTu2EJeXy0TbkgIqdQRS9EUqmgP9+udOYTh3o83OHSC3f3eAA6I5b+XiJbk\n\
-dWQ1BHxqse/xrSs57okknFeEa/tamn4wYfJZ1KWm+uLQig66sP+djbO6RAduTM6y\n\
-a8itVglTFVJ69jLxfRkGRP78Cq/pSRzOpgWMDRE3/Rzb8KcnLIYw/ykkRhqtoRYY\n\
-IO9gyRm8xYvoUfaRxQXtvqoxZNnv2EtJKtUfMlDD8QKBgQDdqEYqEkXTZmCXALhc\n\
-h0fSgqpIfsE9MImUU7HWTFH0T/1DijdtIfyvi/9scyoU8IG6PtkIxe1GxtMTjMZv\n\
-H5O+h3TprN35ZFkHsLAo/w+UyB9vRH8+uY9ZuXRz0MgkHnWBcs+qC087Rqgz4AZS\n\
-u+LgLfmzVd//pUGBI7gTosF/UQKBgQDFaZq20ZTyZ1/GOqRDnjfjv2veSc/zvUJe\n\
-+9F0HDNDlA5VJeDBVryx44SV9ySoDLFeTw+RKKFDkjKhfyY4WE+WB7eXyN0wksTi\n\
-'
+  private_key: '-----BEGIN PRIVATE KEY-----\\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCq7e34rJ/Dq/lU\\\nWX8QJfwH1kPzty/LgQMc4MTewgzffmIRK3pPUPPXckrxEmwoLNOfTKjyPETTOSLF\\\nUAoJxZWRpT3Db11ND4QX58DBHUe7KpldNIl6qnWZMm2+WlrBvU3O1h7yYFxMFtcT\\\nRl6FMtTDP8ht8Nzr2xKcFJyInjQtIVC1IERQrzbfodrzTuEVvZz7LuDlVRT15h7p\\\nOC3gt3ArFalq5Qb/fCPnw4Qg/KL0FbmQEx80MW4/fglssNUIRZKR6yP6vkOveXFR\\\n8e8yqFP4wcV894tYfSkuUQNAF/ljqN3B2hkKElxB6OrS+bi4SWLjV7NGfmBpYlzg\\\nevQPo0qVAgMBAAECggEAIMfwRWqP2lY7Q0TFtFpgjz01u4Ikma4Eo49s2j7TerJR\\\nivLwalE/bpCGFF1A3mSYclrgpNJPrcWtqDM9NZoN4QiUg4xyU5LX9cC1zCN6LAhT\\\nsNcgTaTu2EJeXy0TbkgIqdQRS9EUqmgP9+udOYTh3o83OHSC3f3eAA6I5b+XiJbk\\\ndWQ1BHxqse/xrSs57okknFeEa/tamn4wYfJZ1KWm+uLQig66sP+djbO6RAduTM6y\\\na8itVglTFVJ69jLxfRkGRP78Cq/pSRzOpgWMDRE3/Rzb8KcnLIYw/ykkRhqtoRYY\\\nIO9gyRm8xYvoUfaRxQXtvqoxZNnv2EtJKtUfMlDD8QKBgQDdqEYqEkXTZmCXALhc\\\nh0fSgqpIfsE9MImUU7HWTFH0T/1DijdtIfyvi/9scyoU8IG6PtkIxe1GxtMTjMZv\\\nH5O+h3TprN35ZFkHsLAo/w+UyB9vRH8+uY9ZuXRz0MgkHnWBcs+qC087Rqgz4AZS\\\nu+LgLfmzVd//pUGBI7gTosF/UQKBgQDFaZq20ZTyZ1/GOqRDnjfjv2veSc/zvUJe\\\n+9F0HDNDlA5VJeDBVryx44SV9ySoDLFeTw+RKKFDkjKhfyY4WE+WB7eXyN0wksTi\\\n'
 };
 
 // GLOBALS
@@ -153,7 +136,10 @@ async function autoUpdateFixedActivities() {
       await sb.from('activities').update({ status: 'completada', finished_at: new Date().toISOString(), duration_minutes: mins }).eq('id', act.id);
     }
   }
-  if (currentUser && currentUser.role === 'tecnico') loadTecnicoToday();
+  if (currentUser && currentUser.role === 'tecnico') {
+    renderTecCalendar();
+    loadTecnicoToday();
+  }
 }
 
 // TECNICO LOGIC
@@ -165,11 +151,25 @@ async function initTecnico() {
   await loadTecnicoList();
 }
 
-function renderTecCalendar() {
+async function renderTecCalendar() {
   const container = document.getElementById('tec-calendar-days');
-  if(!container) return;
+  if(!container || !currentUser) return;
+  
   const days = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
   const today = new Date();
+  
+  // Consultamos las actividades de la semana para pintar los indicadores/puntos correspondientes de actividades fijas
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  
+  const { data: weekActs } = await sb.from('activities')
+    .select('scheduled_date, is_fixed')
+    .eq('assigned_to', currentUser.id)
+    .gte('scheduled_date', startOfWeek.toISOString().split('T')[0])
+    .lte('scheduled_date', endOfWeek.toISOString().split('T')[0]);
+
   let html = '';
   for(let i=0; i<7; i++) {
     let d = new Date();
@@ -178,14 +178,25 @@ function renderTecCalendar() {
     let isToday = dateStr === today.toISOString().split('T')[0];
     let isSelected = dateStr === tecSelectedDate;
     
+    // Contar actividades para los puntos visuales (fijas vs normales)
+    const dayActs = weekActs ? weekActs.filter(a => a.scheduled_date === dateStr) : [];
+    const fixedCount = dayActs.filter(a => a.is_fixed).length;
+    
     let bg = 'transparent', border = 'transparent', tc = 'var(--text)';
     if(isSelected) { bg = 'var(--accent)'; border = 'var(--accent)'; tc = '#fff'; }
     else if(isToday) { bg = 'var(--card)'; border = 'var(--border2)'; tc = 'var(--text)'; }
     else { bg = 'var(--card)'; border = 'var(--border)'; tc = 'var(--muted)'; }
     
+    var todayDot = isToday && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin:2px auto 0"></div>' : '';
+    var fixedDot = fixedCount > 0 ? '<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">'
+      + Array.from({length: Math.min(fixedCount, 3)}).map(function(){ return '<div style="width:3px;height:3px;border-radius:50%;background:var(--fixed);opacity:.7"></div>'; }).join('')
+      + '</div>' : '';
+      
     html += `<div data-date="${dateStr}" onclick="tecJumpToDay(this.dataset.date)" style="flex:1;min-width:0;background:${bg};border:1.5px solid ${border};border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">
       <div style="font-size:.6rem;font-weight:700;color:${tc}">${days[i]}</div>
       <div style="font-size:.72rem;font-weight:600;color:${tc};line-height:1.3">${d.getDate()}</div>
+      ${todayDot}
+      ${fixedDot}
     </div>`;
   }
   container.innerHTML = html;
@@ -223,7 +234,7 @@ async function loadTecnicoToday() {
       todayEl.innerHTML = '<div class="empty-state"><div class="empty-text">' + (tecSelectedDate === new Date().toISOString().split('T')[0] ? 'No tienes actividades pendientes. Usa el boton "+" para agregar una.' : 'Sin actividades este dia.') + '</div></div>';
     } else {
       todayEl.innerHTML = nonFixed.map(a => renderActCardTec(a, false)).join('');
-      // Lanzar de forma segura los hilos de los cronómetros para las tarjetas en progreso
+      // Ejecución segura de cronómetros
       nonFixed.filter(a => a.status === 'en_progreso').forEach(a => {
         if(document.getElementById('timer-' + a.id) && typeof startTimerDisplay === 'function') {
           startTimerDisplay(a.id);
@@ -303,13 +314,11 @@ function openConfirmStart(id, e) {
 }
 
 function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('remove');
   document.getElementById('confirm-overlay').classList.remove('open');
   pendingStartActId = null;
 }
 
-/* ==========================================
-   FUNCIÓN CORREGIDA: confirmStart()
-   ========================================== */
 async function confirmStart() {
   if (!pendingStartActId) return;
   closeConfirm();
@@ -319,7 +328,6 @@ async function confirmStart() {
   const now = new Date().toISOString();
 
   try {
-    // 1. Modificar el estado en la base de datos de Supabase
     const { error } = await sb.from('activities')
       .update({
         status: 'en_progreso',
@@ -328,30 +336,28 @@ async function confirmStart() {
       .eq('id', id);
 
     if (error) {
-      console.error("Error en Supabase al iniciar actividad:", error);
-      showToast('Error al iniciar en la base de datos', 'error');
+      console.error(error);
+      showToast('Error al iniciar', 'error');
       return;
     }
 
     showToast('Actividad iniciada', 'success');
 
-    // 2. Renderizar inmediatamente la UI local para que aparezca el contenedor del reloj ('timer-id')
+    // Forzar renderizado y llamada segura al timer
     await loadTecnicoToday();
     await loadTecnicoList();
 
-    // 3. Arrancar el cronómetro en tiempo real de forma segura (definido en app2.js)
     if (typeof startTimerDisplay === 'function') {
       startTimerDisplay(id);
     } else {
-      // Salvaguarda por si el script app2.js tarda un instante en acoplarse
       setTimeout(() => {
         if (typeof startTimerDisplay === 'function') startTimerDisplay(id);
       }, 300);
     }
 
   } catch (err) {
-    console.error("Error crítico en frontend al iniciar actividad:", err);
-    showToast('Error inesperado en la app', 'error');
+    console.error(err);
+    showToast('Error inesperado', 'error');
   }
 }
 
