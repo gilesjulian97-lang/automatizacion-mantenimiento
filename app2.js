@@ -14,18 +14,17 @@ async function finishActivity(id, e) {
 function startTimerDisplay(id) {
   const el = document.getElementById('timer-'+id);
   if (!el || timers[id]) return;
-  sb.from('activities').select('started_at').eq('id',id).single().then(({data})=>{
-    if (!data?.started_at) return;
-    const start = new Date(data.started_at);
-    timers[id] = setInterval(()=>{
-    const diff=Math.max(0, Math.floor((new Date()-start)/1000));
-    const h=String(Math.floor(diff/3600)).padStart(2,'0');
-    const m=String(Math.floor((diff%3600)/60)).padStart(2,'0');
-    const s=String(diff%60).padStart(2,'0');
-    const el2=document.getElementById('timer-'+id);
-    if (el2) el2.textContent=`${h}:${m}:${s}`; else { clearInterval(timers[id]); delete timers[id]; }
-    },1000);
-  });
+  // Use current time as start - avoids timezone issues
+  const startTime = Date.now();
+  timers[id] = setInterval(function(){
+    const diff = Math.floor((Date.now() - startTime) / 1000);
+    const h = String(Math.floor(diff/3600)).padStart(2,'0');
+    const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+    const s = String(diff%60).padStart(2,'0');
+    const el2 = document.getElementById('timer-'+id);
+    if(el2) el2.textContent = h+':'+m+':'+s;
+    else { clearInterval(timers[id]); delete timers[id]; }
+  }, 1000);
 }
 // GOOGLE DRIVE INTEGRATION
 let driveToken = null;

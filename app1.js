@@ -1,40 +1,9 @@
 // CONFIG
 const SUPABASE_URL = 'https://eaeuqcdcnkztttkfvbut.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
-const ANTHROPIC_KEY_PLACEHOLDER = 'USE_YOUR_ANTHROPIC_KEY'; // Se llena desde el backend
-const DRIVE_FOLDER_ID = '1c5gqD11F2szgL-EB5MYP2C4qg8g7nv7m';
-const SERVICE_ACCOUNT = {
-  client_email: 'avimex-drive@automatizacionmay2026.iam.gserviceaccount.com',
-  private_key: '-----BEGIN PRIVATE KEY-----\
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCq7e34rJ/Dq/lU\
-WX8QJfwH1kPzty/LgQMc4MTewgzffmIRK3pPUPPXckrxEmwoLNOfTKjyPETTOSLF\
-UAoJxZWRpT3Db11ND4QX58DBHUe7KpldNIl6qnWZMm2+WlrBvU3O1h7yYFxMFtcT\
-Rl6FMtTDP8ht8Nzr2xKcFJyInjQtIVC1IERQrzbfodrzTuEVvZz7LuDlVRT15h7p\
-OC3gt3ArFalq5Qb/fCPnw4Qg/KL0FbmQEx80MW4/fglssNUIRZKR6yP6vkOveXFR\
-8e8yqFP4wcV894tYfSkuUQNAF/ljqN3B2hkKElxB6OrS+bi4SWLjV7NGfmBpYlzg\
-evQPo0qVAgMBAAECggEAIMfwRWqP2lY7Q0TFtFpgjz01u4Ikma4Eo49s2j7TerJR\
-ivLwalE/bpCGFF1A3mSYclrgpNJPrcWtqDM9NZoN4QiUg4xyU5LX9cC1zCN6LAhT\
-sNcgTaTu2EJeXy0TbkgIqdQRS9EUqmgP9+udOYTh3o83OHSC3f3eAA6I5b+XiJbk\
-dWQ1BHxqse/xrSs57okknFeEa/tamn4wYfJZ1KWm+uLQig66sP+djbO6RAduTM6y\
-a8itVglTFVJ69jLxfRkGRP78Cq/pSRzOpgWMDRE3/Rzb8KcnLIYw/ykkRhqtoRYY\
-IO9gyRm8xYvoUfaRxQXtvqoxZNnv2EtJKtUfMlDD8QKBgQDdqEYqEkXTZmCXALhc\
-h0fSgqpIfsE9MImUU7HWTFH0T/1DijdtIfyvi/9scyoU8IG6PtkIxe1GxtMTjMZv\
-H5O+h3TprN35ZFkHsLAo/w+UyB9vRH8+uY9ZuXRz0MgkHnWBcs+qC087Rqgz4AZS\
-u+LgLfmzVd//pUGBI7gTosF/UQKBgQDFaZq20ZTyZ1/GOqRDnjfjv2veSc/zvUJe\
-+9F0HDNDlA5VJeDBVryx44SV9ySoDLFeTw+RKKFDkjKhfyY4WE+WB7eXyN0wksTi\
-QKcZLFr+vdKsjM03iACf92rfZ5fmgaSklC4BwIB/Yubald8STV6JQT7bHmoW4wOD\
-k8ZlBvduBQKBgQDHN3RIX7/uLjdlwDnyv4tnwhR1r6bR7gvZChftuQ53fGTuDQ2f\
-wkovJK5etGsAAuE1mULLRcjqMcyH56B5Q3IwbeJAGyQt/2idJspNLmC8odjO0kti\
-/re+NpZZeS5IeC+4No46EIwXhHuslA5a0Y8pWWjxK591Tvu+q3HIBCHQ4QKBgDHh\
-J/1PYTIKWpGsmXqYTIjYAfpNbiSoyk9Tky2iPnWxwBlVk79mGhFcalC1/GYVpu8s\
-TMOhn3WCSBa0GMUd0yYWVxYb4391ZhfAvDfJFEjPT57XiLaiP34rtq4x75iHY0FO\
-S32X1R/arnfGbHGkaOGHQcl9mtKjk2y4duVp6DS9AoGAPiiljZd1LxCqBKaIL64k\
-F5LqmhgqhYGghLc6J+PridIMrALgG2Kn9r6VVksMYlI2eM6Q1Jt/ogbRs+iI5tPx\
-sfdZeCylTJgqCCxPZ9x8zBfgcebv1iHLykpvwMGSkgMVzyr5M7Ul6sM/pqv/bYkO\
-moe4LaKIjJxFYg97zNCKmqw=\
------END PRIVATE KEY-----\
-'
-};
+
+
+// Google Drive integration removed
 let sb = null;
 // STATE
 let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
@@ -237,7 +206,7 @@ async function loadDashboard() {
 function renderActCardSup(a) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
-  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? `<span class="live-badge"><span class="live-dot"></span>En progreso</span>` : '';
+  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
     <div class="act-status-dot dot-${a.status}"></div>
@@ -258,8 +227,10 @@ function renderActCardSup(a) {
     </div>
     </div>
     <div class="images-section">
-    <div class="comments-title">Im&#225;genes</div>
+    <div class="comments-title">Im&#225;genes de evidencia</div>
     <div class="images-grid" id="imgs-${a.id}"></div>
+    <input type="file" class="img-file-input" id="file-${a.id}" accept="image/*" multiple onchange="handleImageUpload('${a.id}',this)">
+    <button class="img-upload-btn" onclick="document.getElementById('file-${a.id}').click()">&#128247; Subir im&#225;genes &#8594; Drive</button>
     </div>
     </div>
   </div>`;
@@ -811,4 +782,14 @@ async function cancelStart(id) {
   if(error) { showToast('Error', 'error'); return; }
   showToast('Inicio cancelado', 'success');
   loadTecnicoToday();
+}
+
+async function supCancelStart(id) {
+  if(!id || id === 'null') return;
+  const { error } = await sb.from('activities').update({
+    status: 'pendiente', started_at: null
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  showToast('Inicio cancelado', 'success');
+  loadDashboard();
 }
