@@ -246,32 +246,39 @@ function tecSubTab(tab){
   if(l){ l.style.background=tab==='lista'?'var(--orange)':'transparent'; l.style.color=tab==='lista'?'#fff':'var(--muted2)'; l.style.borderColor=tab==='lista'?'var(--orange)':'var(--border2)'; }
   if(tab==='lista') loadTecListaCompleta();
 }
-async function loadTecListaCompleta(){
-  var r=await sb.from('activities').select('*').eq('assigned_to',currentUser.id).eq('is_fixed',false).order('scheduled_date');
-  var all=r.data||[];
-  var mkRow=function(a){
-    var dur=a.duration_minutes?' - '+Math.floor(a.duration_minutes/60)+'h '+a.duration_minutes%60+'m':'';
-    var dateStr=a.scheduled_date?new Date(a.scheduled_date+'T12:00:00').toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'}):'Sin fecha';
-    var isRehacer=a.description&&a.description.includes('[REHACER]');
-    return '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--card);border:1px solid var(--border);'+(isRehacer?'border-left:3px solid var(--red);':'')+';border-radius:8px;margin-bottom:6px">'
-    +'<div style="flex:1;min-width:0">'
-    +(isRehacer?'<div style="font-size:.6rem;font-weight:700;color:var(--red);margin-bottom:3px">REHACER</div>':'')
-    +'<div style="font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.title+'</div>'
-    +'<div style="font-size:.65rem;color:var(--muted);margin-top:2px"><span class="act-type-pill type-'+a.type+'" style="font-size:.52rem">'+a.type+'</span><span style="margin-left:6px">'+dateStr+dur+'</span></div>'
-    +'</div>'
-    +(a.status!=='completada'?'<button data-id="'+a.id+'" onclick="addTecToToday(this)" class="btn btn-accent btn-sm" style="flex-shrink:0;font-size:.65rem">+ Hoy</button>':'')
-    +'</div>';
-  };
-  var prog=all.filter(function(a){return a.status==='en_progreso';});
-  var pend=all.filter(function(a){return a.status==='pendiente'||a.status==='revisar';});
-  var done=all.filter(function(a){return a.status==='completada';}).sort(function(a,b){return new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at);});
-  var pEl=document.getElementById('tec-list-prog');
-  var pendEl=document.getElementById('tec-list-pend');
-  var doneEl=document.getElementById('tec-list-done');
-  if(pEl) pEl.innerHTML=prog.length?prog.map(mkRow).join(''):'<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades en progreso</div>';
-  if(pendEl) pendEl.innerHTML=pend.length?pend.map(mkRow).join(''):'<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades pendientes</div>';
-  if(doneEl) doneEl.innerHTML=done.length?done.map(mkRow).join(''):'<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades completadas</div>';
+async function loadTecListaCompleta() {
+  var r = await sb.from('activities').select('*')
+    .eq('assigned_to', currentUser.id).eq('is_fixed', false)
+    .order('scheduled_date');
+  var all = r.data || [];
+  var prog = all.filter(function(a){ return a.status === 'en_progreso'; });
+  var pend = all.filter(function(a){ return a.status === 'pendiente' || a.status === 'revisar'; });
+  var done = all.filter(function(a){ return a.status === 'completada'; })
+    .sort(function(a,b){ return new Date(b.finished_at||b.created_at) - new Date(a.finished_at||a.created_at); });
+
+  var pEl = document.getElementById('tec-list-prog');
+  var pendEl = document.getElementById('tec-list-pend');
+  var doneEl = document.getElementById('tec-list-done');
+
+  if(pEl) pEl.innerHTML = prog.length
+    ? prog.map(function(a){ return renderActCardTec(a, true); }).join('')
+    : '<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades en progreso</div>';
+
+  if(pendEl) pendEl.innerHTML = pend.length
+    ? pend.map(function(a){ return renderActCardTec(a, true); }).join('')
+    : '<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades pendientes</div>';
+
+  if(doneEl) doneEl.innerHTML = done.length
+    ? done.map(function(a){ return renderActCardTec(a, true); }).join('')
+    : '<div style="color:var(--muted);font-size:.8rem;padding:6px 0">Sin actividades completadas</div>';
+
+  // Start timers for in-progress
+  prog.forEach(function(a){
+    if(document.getElementById('timer-'+a.id)) startTimerDisplay(a.id);
+  });
 }
+
+
 async function addTecToToday(el){
   var id=el.dataset.id;
   var today=new Date().toISOString().split('T')[0];

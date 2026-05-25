@@ -63,10 +63,7 @@ async function handleImageUpload(actId, input) {
       const fileName = actTitle.substring(0,30).replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '.jpg';
 
       // Send to Apps Script
-      const response = await fetch('https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
+      const payload = JSON.stringify({
           activityTitle: actTitle,
           monthLabel: monthLabel,
           weekLabel: weekLabel,
@@ -74,7 +71,11 @@ async function handleImageUpload(actId, input) {
           fileBase64: base64,
           mimeType: file.type || 'image/jpeg',
           uploadedBy: currentUser.name
-        })
+      });
+      const response = await fetch('https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec', {
+        method: 'POST',
+        redirect: 'follow',
+        body: payload
       });
 
       const result = await response.json();
