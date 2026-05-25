@@ -1,0 +1,682 @@
+// CONFIG
+const SUPABASE_URL = 'https://eaeuqcdcnkztttkfvbut.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
+const ANTHROPIC_KEY_PLACEHOLDER = 'USE_YOUR_ANTHROPIC_KEY'; // Se llena desde el backend
+const DRIVE_FOLDER_ID = '1c5gqD11F2szgL-EB5MYP2C4qg8g7nv7m';
+const SERVICE_ACCOUNT = {
+  client_email: 'avimex-drive@automatizacionmay2026.iam.gserviceaccount.com',
+  private_key: '-----BEGIN PRIVATE KEY-----\
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCq7e34rJ/Dq/lU\
+WX8QJfwH1kPzty/LgQMc4MTewgzffmIRK3pPUPPXckrxEmwoLNOfTKjyPETTOSLF\
+UAoJxZWRpT3Db11ND4QX58DBHUe7KpldNIl6qnWZMm2+WlrBvU3O1h7yYFxMFtcT\
+Rl6FMtTDP8ht8Nzr2xKcFJyInjQtIVC1IERQrzbfodrzTuEVvZz7LuDlVRT15h7p\
+OC3gt3ArFalq5Qb/fCPnw4Qg/KL0FbmQEx80MW4/fglssNUIRZKR6yP6vkOveXFR\
+8e8yqFP4wcV894tYfSkuUQNAF/ljqN3B2hkKElxB6OrS+bi4SWLjV7NGfmBpYlzg\
+evQPo0qVAgMBAAECggEAIMfwRWqP2lY7Q0TFtFpgjz01u4Ikma4Eo49s2j7TerJR\
+ivLwalE/bpCGFF1A3mSYclrgpNJPrcWtqDM9NZoN4QiUg4xyU5LX9cC1zCN6LAhT\
+sNcgTaTu2EJeXy0TbkgIqdQRS9EUqmgP9+udOYTh3o83OHSC3f3eAA6I5b+XiJbk\
+dWQ1BHxqse/xrSs57okknFeEa/tamn4wYfJZ1KWm+uLQig66sP+djbO6RAduTM6y\
+a8itVglTFVJ69jLxfRkGRP78Cq/pSRzOpgWMDRE3/Rzb8KcnLIYw/ykkRhqtoRYY\
+IO9gyRm8xYvoUfaRxQXtvqoxZNnv2EtJKtUfMlDD8QKBgQDdqEYqEkXTZmCXALhc\
+h0fSgqpIfsE9MImUU7HWTFH0T/1DijdtIfyvi/9scyoU8IG6PtkIxe1GxtMTjMZv\
+H5O+h3TprN35ZFkHsLAo/w+UyB9vRH8+uY9ZuXRz0MgkHnWBcs+qC087Rqgz4AZS\
+u+LgLfmzVd//pUGBI7gTosF/UQKBgQDFaZq20ZTyZ1/GOqRDnjfjv2veSc/zvUJe\
++9F0HDNDlA5VJeDBVryx44SV9ySoDLFeTw+RKKFDkjKhfyY4WE+WB7eXyN0wksTi\
+QKcZLFr+vdKsjM03iACf92rfZ5fmgaSklC4BwIB/Yubald8STV6JQT7bHmoW4wOD\
+k8ZlBvduBQKBgQDHN3RIX7/uLjdlwDnyv4tnwhR1r6bR7gvZChftuQ53fGTuDQ2f\
+wkovJK5etGsAAuE1mULLRcjqMcyH56B5Q3IwbeJAGyQt/2idJspNLmC8odjO0kti\
+/re+NpZZeS5IeC+4No46EIwXhHuslA5a0Y8pWWjxK591Tvu+q3HIBCHQ4QKBgDHh\
+J/1PYTIKWpGsmXqYTIjYAfpNbiSoyk9Tky2iPnWxwBlVk79mGhFcalC1/GYVpu8s\
+TMOhn3WCSBa0GMUd0yYWVxYb4391ZhfAvDfJFEjPT57XiLaiP34rtq4x75iHY0FO\
+S32X1R/arnfGbHGkaOGHQcl9mtKjk2y4duVp6DS9AoGAPiiljZd1LxCqBKaIL64k\
+F5LqmhgqhYGghLc6J+PridIMrALgG2Kn9r6VVksMYlI2eM6Q1Jt/ogbRs+iI5tPx\
+sfdZeCylTJgqCCxPZ9x8zBfgcebv1iHLykpvwMGSkgMVzyr5M7Ul6sM/pqv/bYkO\
+moe4LaKIjJxFYg97zNCKmqw=\
+-----END PRIVATE KEY-----\
+'
+};
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// STATE
+let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
+let selectedDayTec = new Date();
+let pinBuffer = '', selectedUserId = null, timers = {};
+let pendingStartActId = null;
+// INIT
+async function init() {
+  const [{ data: users }, { data: weeks }] = await Promise.all([
+    sb.from('users').select('*').order('created_at'),
+    sb.from('weeks').select('*').order('start_date', { ascending: false })
+  ]);
+  allUsers = users || [];
+  allWeeks = weeks || [];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const currentWeek = allWeeks.find(w => todayStr >= w.start_date && todayStr <= w.end_date);
+  selectedWeekId = currentWeek ? currentWeek.id : allWeeks[0].id;
+  renderUserBtns();
+  const saved = localStorage.getItem('avimex_user');
+  if (saved) { currentUser = JSON.parse(saved); showApp(); }
+  setInterval(autoUpdateFixedActivities, 60000);
+}
+// AUTO-UPDATE FIXED ACTIVITIES
+async function autoUpdateFixedActivities() {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().slice(0,5);
+  const { data: fixedActs } = await sb.from('activities')
+    .select('*').eq('is_fixed', true).eq('scheduled_date', today)
+    .eq('status', 'pendiente');
+  if (!fixedActs) return;
+  for (const act of fixedActs) {
+    if (act.scheduled_start && act.scheduled_end) {
+    if (timeStr >= act.scheduled_start && timeStr < act.scheduled_end) {
+    await sb.from('activities').update({ status: 'en_progreso', started_at: new Date().toISOString() }).eq('id', act.id);
+    }
+    }
+  }
+  const { data: inProgressFixed } = await sb.from('activities')
+    .select('*').eq('is_fixed', true).eq('scheduled_date', today).eq('status', 'en_progreso');
+  if (!inProgressFixed) return;
+  for (const act of inProgressFixed) {
+    if (act.scheduled_end && timeStr >= act.scheduled_end) {
+    const started = act.started_at ? new Date(act.started_at) : new Date();
+    const mins = Math.round((new Date() - started) / 60000);
+    await sb.from('activities').update({ status: 'completada', finished_at: new Date().toISOString(), duration_minutes: mins }).eq('id', act.id);
+    }
+  }
+}
+// LOGIN
+function renderUserBtns() {
+  document.getElementById('user-btns').innerHTML = allUsers.map(u => `
+    <button class="user-btn" id="ubtn-${u.id}" onclick="selectUser('${u.id}')">
+    <div class="user-avatar av-${u.name.toLowerCase()}">${u.name[0]}</div>
+    <span>${u.name}</span>
+    ${u.role==='supervisor'?'<span style="font-size:.6rem;color:var(--accent);font-family:DM Mono">SUPERVISOR</span>':''}
+    </button>`).join('');
+}
+function selectUser(id) {
+  selectedUserId = id; pinBuffer = ''; updatePinDots();
+  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('ubtn-'+id)?.classList.add('selected');
+  document.getElementById('login-error').textContent = '';
+}
+function pinKey(k) {
+  if (!selectedUserId) { document.getElementById('login-error').textContent = 'Selecciona un usuario primero'; return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k; updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(pinEnter, 200);
+}
+function pinDel() { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots() {
+  for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+function pinEnter() {
+  if (!selectedUserId || pinBuffer.length !== 4) return;
+  const user = allUsers.find(u => u.id === selectedUserId);
+  if (!user || user.pin !== pinBuffer) {
+    document.getElementById('login-error').textContent = 'PIN incorrecto';
+    pinBuffer = ''; updatePinDots(); return;
+  }
+  currentUser = user; localStorage.setItem('avimex_user', JSON.stringify(user)); showApp();
+}
+function logout() {
+  localStorage.removeItem('avimex_user'); currentUser = null; selectedUserId = null; pinBuffer = '';
+  updatePinDots(); document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('login-error').textContent = ''; showScreen('login-screen');
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+// APP SETUP
+function showApp() {
+  showScreen('app-screen');
+  document.getElementById('topbar-name').textContent = currentUser.name;
+  const av = document.getElementById('topbar-avatar');
+  av.textContent = currentUser.name[0]; av.className = `topbar-avatar av-${currentUser.name.toLowerCase()}`;
+  if (currentUser.role === 'supervisor') setupSupervisor(); else setupTecnico();
+  autoUpdateFixedActivities();
+}
+// SUPERVISOR
+function setupSupervisor() {
+  document.getElementById('sup-tabs').style.display = 'block';
+  document.getElementById('tec-view').style.display = 'none';
+  document.getElementById('fab').classList.remove('hidden');
+  document.getElementById('bottom-nav').innerHTML = `
+    <button class="bnav-btn active" id="bn-dashboard" data-tab="dashboard">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>Dashboard</button>
+    <button class="bnav-btn" id="bn-lista" data-tab="lista">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Lista</button>
+    <button class="bnav-btn" id="bn-julian" data-tab="julian">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="2" stroke-linecap="round"/></svg>Mis tareas</button>
+    <button class="bnav-btn" id="bn-semana" data-tab="semana">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/></svg>Semana</button>
+    <button class="bnav-btn" id="bn-stats" data-tab="stats">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Estadisticas</button>
+    <button class="bnav-btn" id="bn-add" data-tab="add">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="16" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-width="2" stroke-linecap="round"/></svg>Agregar</button>`;
+  document.getElementById('bottom-nav').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-tab]');
+    if(!btn) return;
+    var tab = btn.dataset.tab;
+    switchTab(tab);
+    if(tab==='lista') loadSupLista();
+    else if(tab==='julian') loadJulianDay();
+    else if(tab==='semana') loadSemana();
+    else if(tab==='stats') loadStats();
+  });
+  populateWeekSelectors(); populateUserSelects(); loadDashboard();
+}
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('bn-'+tab)?.classList.add('active');
+  if (tab==='stats') loadStats();
+  if (tab==='dashboard') loadDashboard();
+}
+function populateWeekSelectors(){
+  var week=allWeeks.find(function(w){return w.id===selectedWeekId;});
+  var lbl=document.getElementById('dashboard-week-label');
+  if(week&&lbl) lbl.textContent=week.label;
+  ['week-selector','week-selector-stats'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.innerHTML=allWeeks.map(function(w){
+    return '<div class="week-chip'+(w.id===selectedWeekId?' active':'')+' sup-wchip" data-wid="'+w.id+'" data-sel="'+id+'" onclick="selectWeekSupEl(this)">'+w.label+'</div>';
+    }).join('');
+    setTimeout(function(){var a=el.querySelector('.week-chip.active');if(a)a.scrollIntoView({inline:'nearest',behavior:'auto'});},50);
+  });
+}
+function selectWeekSupEl(el){
+  selectedWeekId=el.dataset.wid;
+  var selectorId=el.dataset.sel;
+  var container=document.getElementById(selectorId);
+  if(container) container.querySelectorAll('.sup-wchip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  loadDashboard();
+}
+function selectWeekSup(id, el) {
+  selectedWeekId = id;
+  document.querySelectorAll('#week-selector .week-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); loadDashboard();
+}
+function populateUserSelects() {
+  const tecnicos = allUsers.filter(u=>u.role==='tecnico');
+  ['new-assigned','m-assigned'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    el.innerHTML = tecnicos.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+  });
+  ['new-week','m-week'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    el.innerHTML = allWeeks.map(w=>`<option value="${w.id}">${w.label}</option>`).join('');
+  });
+}
+async function loadDashboard() {
+  if (!selectedWeekId) return;
+  const week = allWeeks.find(w=>w.id===selectedWeekId);
+  if (week) document.getElementById('dashboard-week-label').textContent = week.label;
+  const { data: acts } = await sb.from('activities').select('*').eq('week_id', selectedWeekId);
+  if (!acts) return;
+  const total=acts.length, done=acts.filter(a=>a.status==='completada').length,
+    prog=acts.filter(a=>a.status==='en_progreso').length, pend=acts.filter(a=>a.status==='pendiente').length;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-done').textContent=done;
+  document.getElementById('stat-prog').textContent=prog;
+  document.getElementById('stat-pend').textContent=pend;
+  const pedro=allUsers.find(u=>u.name==='Pedro'), said=allUsers.find(u=>u.name==='Said');
+  if (pedro) { const pa=acts.filter(a=>a.assigned_to===pedro.id); const pp=pa.length?Math.round(pa.filter(a=>a.status==='completada').length/pa.length*100):0; document.getElementById('pct-pedro').textContent=pp+'%'; document.getElementById('bar-pedro').style.width=pp+'%'; }
+  if (said) { const sa=acts.filter(a=>a.assigned_to===said.id); const sp=sa.length?Math.round(sa.filter(a=>a.status==='completada').length/sa.length*100):0; document.getElementById('pct-said').textContent=sp+'%'; document.getElementById('bar-said').style.width=sp+'%'; }
+  const live=acts.filter(a=>a.status==='en_progreso');
+  document.getElementById('live-activities').innerHTML = live.length===0
+    ? `<div class="empty-state"><div class="empty-icon">\ud83d\udca4</div><div class="empty-text">Sin actividades en progreso</div></div>`
+    : live.map(a=>renderActCardSup(a)).join('');
+  document.getElementById('acts-pedro').innerHTML = acts.filter(a=>a.assigned_to===pedro?.id).map(a=>renderActCardSup(a)).join('') || `<div class="empty-state"><div class="empty-text">Sin actividades</div></div>`;
+  document.getElementById('acts-said').innerHTML = acts.filter(a=>a.assigned_to===said?.id).map(a=>renderActCardSup(a)).join('') || `<div class="empty-state"><div class="empty-text">Sin actividades</div></div>`;
+  loadDashboardExtras(acts);
+}
+function renderActCardSup(a) {
+  const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
+  const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
+  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? `<span class="live-badge"><span class="live-dot"></span>En progreso</span>` : '';
+  return `<div class="act-card" id="card-${a.id}">
+    <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
+    <div class="act-status-dot dot-${a.status}"></div>
+    <div class="act-card-info">
+    <div class="act-card-title">${a.title}</div>
+    <div class="act-card-meta"><span class="act-type-pill type-${a.type}">${a.type}</span>${timeStr?`<span class="act-time">${timeStr}</span>`:''}</div>
+    </div>
+    ${statusLabel}<span class="act-card-arrow">&#8250;</span>
+    </div>
+    <div class="act-card-body">
+    ${a.description?`<div class="desc-box">${a.description}<span class="desc-edit-btn" onclick="openEditDesc('${a.id}','${encodeURIComponent(a.description)}')">\u270f\ufe0f Editar</span></div>`:''}
+    <div class="comments-section">
+    <div class="comments-title">Comentarios</div>
+    <div id="cmts-${a.id}"></div>
+    <div class="comment-input-wrap">
+    <input class="comment-input" id="cmt-input-${a.id}" placeholder="Agregar comentario..." onkeydown="if(event.key==='Enter')addComment('${a.id}')">
+    <button class="btn btn-outline btn-sm" onclick="addComment('${a.id}')">Enviar</button>
+    </div>
+    </div>
+    <div class="images-section">
+    <div class="comments-title">Im&#225;genes</div>
+    <div class="images-grid" id="imgs-${a.id}"></div>
+    </div>
+    </div>
+  </div>`;
+}
+function toggleCardSup(id) {
+  const card = document.getElementById('card-'+id);
+  if (card.classList.toggle('open')) { loadComments(id); loadImages(id); }
+}
+// STATS + PDF
+async function loadStats() {
+  document.getElementById('stats-content').innerHTML = '<div class="loading"><div class="spinner"></div>Generando...</div>';
+  const { data: acts } = await sb.from('activities').select('*');
+  if (!acts) return;
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const html = await buildStatsHTML(acts, now);
+  document.getElementById('stats-content').innerHTML = html;
+}
+async function buildStatsHTML(acts, now) {
+  const pedro = allUsers.find(u=>u.name==='Pedro');
+  const said  = allUsers.find(u=>u.name==='Said');
+  let html = '';
+  for (const week of [...allWeeks].reverse()) {
+    const wa = acts.filter(a=>a.week_id===week.id);
+    const isCurrentWeek = new Date(week.start_date) <= now && now <= new Date(week.end_date);
+    const isPast = new Date(week.end_date) < now;
+    html += `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="font-family:Bebas Neue;font-size:1.1rem;letter-spacing:2px;color:var(--accent)">${week.label}</div>
+    ${isCurrentWeek?'<span class="live-badge"><span class="live-dot"></span>Semana actual</span>':isPast?'<span style="font-family:DM Mono;font-size:.6rem;color:var(--muted)">COMPLETADA</span>':''}
+    </div>`;
+    for (const person of [pedro, said]) {
+    if (!person) continue;
+    const pa = wa.filter(a=>a.assigned_to===person.id);
+    const done = pa.filter(a=>a.status==='completada').length;
+    const total = pa.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    const totalMins = pa.filter(a=>a.duration_minutes).reduce((s,a)=>s+(a.duration_minutes||0),0);
+    const h = Math.floor(totalMins/60), m = totalMins%60;
+    const color = person.name==='Pedro'?'var(--pedro)':'var(--said)';
+    html += `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+    <span style="font-size:.8rem;font-weight:600;color:${color}">${person.name}</span>
+    <span style="font-family:DM Mono;font-size:.72rem;color:var(--muted2)">${done}/${total} &middot; ${h}h ${m}m</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+    if (isCurrentWeek) {
+    const inProg = pa.filter(a=>a.status==='en_progreso');
+    if (inProg.length) {
+    html += `<div style="margin-bottom:8px"><div style="font-family:DM Mono;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:6px">EN PROGRESO AHORA</div>`;
+    inProg.forEach(a => { html += `<div style="font-size:.75rem;color:var(--accent);padding:4px 0;border-bottom:1px solid var(--border)">&#9654; ${a.title}</div>`; });
+    html += '</div>';
+    }
+    const pendActs = pa.filter(a=>a.status==='pendiente' && !a.is_fixed);
+    if (pendActs.length) {
+    html += `<div style="margin-bottom:8px"><div style="font-family:DM Mono;font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:6px">PENDIENTES</div>`;
+    pendActs.slice(0,5).forEach(a => { html += `<div style="font-size:.75rem;color:var(--muted2);padding:4px 0;border-bottom:1px solid var(--border)">\u2022 ${a.title}</div>`; });
+    html += '</div>';
+    }
+    }
+    }
+    html += '</div>';
+  }
+  return html || '<div class="empty-state"><div class="empty-text">Sin datos a&#250;n</div></div>';
+}
+async function downloadStatsPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const { data: acts } = await sb.from('activities').select('*');
+  const pedro = allUsers.find(u=>u.name==='Pedro');
+  const said  = allUsers.find(u=>u.name==='Said');
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  doc.setFillColor(15,20,32); doc.rect(0,0,210,40,'F');
+  doc.setTextColor(240,192,64); doc.setFontSize(24); doc.setFont('helvetica','bold');
+  doc.text('AVI-MEX &middot; MANTENIMIENTO', 15, 18);
+  doc.setFontSize(9); doc.setTextColor(96,112,160); doc.setFont('helvetica','normal');
+  doc.text('Planta Jojutla - Nave 1 y Nave 2', 15, 25);
+  doc.text(`Reporte generado: ${dateStr}`, 15, 31);
+  doc.text(`Supervisor: Juli&#225;n`, 15, 37);
+  let y = 50;
+  for (const week of [...allWeeks].reverse()) {
+    const wa = (acts||[]).filter(a=>a.week_id===week.id);
+    const isCurrentWeek = new Date(week.start_date) <= now && now <= new Date(week.end_date);
+    doc.setFillColor(26,34,54); doc.rect(10, y-5, 190, 10, 'F');
+    doc.setTextColor(240,192,64); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text(week.label + (isCurrentWeek?' &middot; SEMANA EN CURSO':''), 15, y+1);
+    y += 12;
+    for (const person of [pedro, said]) {
+    if (!person) continue;
+    const pa = wa.filter(a=>a.assigned_to===person.id);
+    const done = pa.filter(a=>a.status==='completada').length;
+    const total = pa.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    const totalMins = pa.filter(a=>a.duration_minutes).reduce((s,a)=>s+(a.duration_minutes||0),0);
+    const h=Math.floor(totalMins/60), m=totalMins%60;
+    doc.setTextColor(person.name==='Pedro'?61:61, person.name==='Pedro'?142:200, person.name==='Pedro'?240:122);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text(`${person.name}`, 15, y);
+    doc.setTextColor(100,120,160); doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text(`${done}/${total} actividades completadas (${pct}%) &middot; Tiempo registrado: ${h}h ${m}m`, 35, y);
+    y += 5;
+    doc.setFillColor(26,34,54); doc.rect(15, y, 80, 3, 'F');
+    const barColor = person.name==='Pedro' ? [61,142,240] : [61,200,122];
+    doc.setFillColor(...barColor); doc.rect(15, y, 80*pct/100, 3, 'F');
+    y += 8;
+    if (isCurrentWeek) {
+    const completed = pa.filter(a=>a.status==='completada' && !a.is_fixed);
+    if (completed.length) {
+    doc.setTextColor(60,160,80); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text('COMPLETADAS:', 18, y); y += 4;
+    completed.forEach(a => {
+    doc.setTextColor(80,100,130); doc.setFont('helvetica','normal');
+    const dur = a.duration_minutes ? ` (${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m)` : '';
+    const lines = doc.splitTextToSize(`&#10003; ${a.title}${dur}`, 170);
+    doc.text(lines, 20, y); y += lines.length * 4;
+    });
+    y += 2;
+    }
+    const pending = pa.filter(a=>a.status==='pendiente' && !a.is_fixed);
+    if (pending.length) {
+    doc.setTextColor(160,100,60); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text('PENDIENTES:', 18, y); y += 4;
+    pending.forEach(a => {
+    doc.setTextColor(100,80,60); doc.setFont('helvetica','normal');
+    const lines = doc.splitTextToSize(`\u2022 ${a.title}`, 170);
+    doc.text(lines, 20, y); y += lines.length * 4;
+    });
+    y += 2;
+    }
+    }
+    y += 4;
+    if (y > 260) { doc.addPage(); y = 20; }
+    }
+    y += 6;
+    if (y > 260) { doc.addPage(); y = 20; }
+  }
+  doc.setFillColor(15,20,32); doc.rect(0, 285, 210, 12, 'F');
+  doc.setTextColor(96,112,160); doc.setFontSize(7);
+  doc.text('AVI-MEX S.A. de C.V. &middot; 001-JOJN1CERING-001 &middot; Confidencial', 15, 292);
+  doc.text(`P&#225;gina 1`, 190, 292);
+  doc.save(`AVI-MEX_Estadisticas_${now.toISOString().split('T')[0]}.pdf`);
+  showToast('PDF descargado &#10003;', 'success');
+}
+// ADD ACTIVITY
+async function generateDescription(fromModal=false) {
+  const titleEl = fromModal ? document.getElementById('m-title') : document.getElementById('new-title');
+  const descEl  = fromModal ? document.getElementById('m-desc')  : document.getElementById('new-desc');
+  const title = titleEl.value.trim();
+  if (!title) { showToast('Escribe primero el t&#237;tulo', 'error'); return; }
+  descEl.value = 'Generando descripci&#243;n...'; descEl.disabled = true;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+    model:'claude-sonnet-4-20250514', max_tokens:300,
+    messages:[{ role:'user', content:`Eres un t&#233;cnico de mantenimiento industrial. Genera una descripci&#243;n t&#233;cnica formal en espa&#241;ol para la siguiente actividad de mantenimiento: "${title}". La descripci&#243;n debe incluir: qu&#233; se hace, por qu&#233; es importante, y consideraciones de seguridad. M&#225;ximo 3 oraciones concisas. Solo la descripci&#243;n, sin t&#237;tulo ni formato adicional.` }]
+    })
+    });
+    const data = await res.json();
+    descEl.value = data.content?.[0]?.text || 'Error al generar descripci&#243;n';
+  } catch(e) {
+    descEl.value = `Actividad de mantenimiento: ${title}. Ejecutar siguiendo los procedimientos establecidos y utilizando el EPP correspondiente.`;
+  }
+  descEl.disabled = false;
+}
+function generateDescModal() { generateDescription(true); }
+async function addActivity() {
+  const title = document.getElementById('new-title').value.trim();
+  const type  = document.getElementById('new-type').value;
+  const assigned = document.getElementById('new-assigned').value;
+  const weekId   = document.getElementById('new-week').value;
+  const date     = document.getElementById('new-date').value || null;
+  const start    = document.getElementById('new-start').value || null;
+  const end      = document.getElementById('new-end').value || null;
+  let desc       = document.getElementById('new-desc').value.trim();
+  if (!title) { showToast('Escribe un t&#237;tulo', 'error'); return; }
+  if (!desc) {
+    document.getElementById('new-desc').value = 'Generando...';
+    try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:200,
+    messages:[{role:'user',content:`Descripci&#243;n t&#233;cnica formal en espa&#241;ol para mantenimiento industrial: "${title}". M&#225;ximo 2 oraciones. Solo la descripci&#243;n.`}]
+    })
+    });
+    const data = await res.json();
+    desc = data.content?.[0]?.text || '';
+    } catch(e) { desc = `Actividad de mantenimiento: ${title}.`; }
+    document.getElementById('new-desc').value = desc;
+  }
+  const { error } = await sb.from('activities').insert({
+    title, type, assigned_to: assigned, week_id: weekId,
+    scheduled_date: date, scheduled_start: start, scheduled_end: end,
+    description: desc, is_fixed: type==='fija', status:'pendiente', created_by: currentUser.id
+  });
+  if (error) { showToast('Error al guardar', 'error'); return; }
+  showToast('Actividad agregada &#10003;', 'success');
+  document.getElementById('new-title').value = '';
+  document.getElementById('new-desc').value = '';
+  loadDashboard();
+}
+async function addActivityModal() {
+  const title = document.getElementById('m-title').value.trim();
+  const type  = document.getElementById('m-type').value;
+  const assigned = document.getElementById('m-assigned').value;
+  const weekId   = document.getElementById('m-week').value;
+  const date     = document.getElementById('m-date').value || null;
+  let desc       = document.getElementById('m-desc').value.trim();
+  if (!title) { showToast('Escribe un t&#237;tulo', 'error'); return; }
+  if (!desc) desc = `Actividad de mantenimiento: ${title}. Ejecutar con el EPP correspondiente.`;
+  const { error } = await sb.from('activities').insert({
+    title, type, assigned_to: assigned, week_id: weekId,
+    scheduled_date: date, description: desc,
+    is_fixed: type==='fija', status:'pendiente', created_by: currentUser.id
+  });
+  if (error) { showToast('Error', 'error'); return; }
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('m-title').value = ''; document.getElementById('m-desc').value = '';
+  showToast('Actividad agregada &#10003;', 'success'); loadDashboard();
+}
+// T\u00c9CNICO
+function setupTecnico() {
+  document.getElementById('sup-tabs').style.display = 'none';
+  document.getElementById('tec-view').style.display = 'block';
+  document.getElementById('fab').classList.add('hidden');
+  document.getElementById('bottom-nav').innerHTML='<button class="bnav-btn active" id="bn-tec-today" data-tectab="today"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/></svg>Mis tareas</button>';
+  document.getElementById('bottom-nav').addEventListener('click', function(e){
+    var btn=e.target.closest('[data-tectab]');
+    if(!btn) return;
+    tecTab(btn.dataset.tectab);
+  });
+  selectedDayTec = new Date();
+  updateTecDayHeader();
+  loadTecnicoToday();
+}
+function tecTab(t) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tec-'+t).classList.add('active');
+  document.getElementById('bn-tec-'+t).classList.add('active');
+}
+function tecSelectWeek(id, el) {
+  selectedWeekId = id;
+  document.querySelectorAll('#week-selector-tec .week-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); loadTecnicoList();
+}
+async function loadTecnicoToday() {
+  if(!selectedDayTec) selectedDayTec = new Date();
+  updateTecDayHeader();
+  const viewDate = selectedDayTec.toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isToday = viewDate === todayStr;
+  const viewDow = new Date(viewDate + 'T12:00:00').getDay();
+  if(viewDow === 0) {
+    const fe = document.getElementById('tec-fixed-today');
+    const te = document.getElementById('tec-today-acts');
+    if(fe) fe.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Domingo - dia de descanso</div>';
+    if(te) te.innerHTML = '';
+    document.getElementById('tec-pct').textContent = '0%';
+    document.getElementById('tec-bar').style.width = '0%';
+    return;
+  }
+  const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
+  const weekId = mw ? mw.id : selectedWeekId;
+  const { data: weekActs } = await sb.from('activities').select('id,status')
+    .eq('assigned_to', currentUser.id).eq('week_id', weekId).eq('is_fixed', false);
+  const wDone = (weekActs||[]).filter(a => a.status === 'completada').length;
+  const wTotal = (weekActs||[]).length;
+  const pct = wTotal ? Math.round(wDone/wTotal*100) : 0;
+  document.getElementById('tec-pct').textContent = pct + '%';
+  document.getElementById('tec-bar').style.width = pct + '%';
+  const { data: acts } = await sb.from('activities').select('*')
+    .eq('assigned_to', currentUser.id)
+    .eq('scheduled_date', viewDate);
+  const fixed = (acts||[]).filter(a => a.is_fixed);
+  const nonFixed = (acts||[]).filter(a => !a.is_fixed);
+  const fixedEl = document.getElementById('tec-fixed-today');
+  if(fixedEl) {
+    if(!fixed.length) {
+    fixedEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem;margin-bottom:8px">Sin actividades fijas este dia</div>';
+    } else {
+    const nowStr = new Date().toTimeString().slice(0,5);
+    const seen = {};
+    const uniqueFixed = fixed.filter(a => {
+    const k = a.title + '|' + (a.scheduled_start||'');
+    if(seen[k]) return false;
+    seen[k] = true;
+    return true;
+    });
+    uniqueFixed.sort((a,b) => (a.scheduled_start||'').localeCompare(b.scheduled_start||''));
+    fixedEl.innerHTML = uniqueFixed.map(a => {
+    const t = a.scheduled_start ? a.scheduled_start.slice(0,5) + '-' + (a.scheduled_end||'').slice(0,5) : '';
+    let status = 'Programada', cls = 'fas-pend';
+    if(isToday && a.scheduled_start && a.scheduled_end) {
+    if(nowStr >= a.scheduled_start && nowStr < a.scheduled_end) { status = 'En progreso'; cls = 'fas-prog'; }
+    else if(nowStr >= a.scheduled_end) { status = 'Completada'; cls = 'fas-done'; }
+    }
+    return '<div class="fixed-act-row">'
+    + '<div class="fixed-act-time">' + t + '</div>'
+    + '<div class="fixed-act-name">' + a.title + '</div>'
+    + '<span class="fixed-act-status ' + cls + '">' + status + '</span>'
+    + '</div>';
+    }).join('');
+    }
+  }
+  const todayEl = document.getElementById('tec-today-acts');
+  if(!todayEl) return;
+  if(!nonFixed.length) {
+    todayEl.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-text">'
+    + (isToday ? 'Sin actividades para hoy.<br>Ve a Lista completa para agregar una.' : 'Sin actividades este dia.')
+    + '</div></div>';
+  } else {
+    todayEl.innerHTML = nonFixed.map(a => renderActCardTec(a, false)).join('');
+    nonFixed.filter(a => a.status === 'en_progreso').forEach(a => {
+    if(document.getElementById('timer-' + a.id)) startTimerDisplay(a.id);
+    });
+  }
+}
+async function loadTecnicoList() {
+  if (!selectedWeekId) return;
+  const { data: rawActs } = await sb.from('activities').select('*')
+    .eq('assigned_to', currentUser.id).eq('week_id', selectedWeekId)
+    .eq('is_fixed', false).order('scheduled_date').order('status');
+  const acts = rawActs||[];
+  const el = document.getElementById('tec-list-acts');
+  if (!acts || acts.length===0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">&#9989;</div><div class="empty-text">Sin actividades esta semana</div></div>`; return;
+  }
+  el.innerHTML = acts.map(a=>renderActCardTec(a, true)).join('');
+}
+function renderActCardTec(a, fromList=false) {
+  const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
+  let actionBtns = '';
+  if (a.status==='pendiente') {
+    actionBtns = `<button class="btn btn-start btn-sm" onclick="showConfirm('${a.id}',event)">&#9654; Iniciar</button>`;
+    if (!fromList) actionBtns += `<button class="btn btn-outline btn-sm" onclick="moveToTomorrow('${a.id}',event)">&#8631; Mover a ma&#241;ana</button>`;
+  } else if (a.status==='en_progreso') {
+    actionBtns = `<div class="timer-display" id="timer-${a.id}">00:00:00</div><button class="btn btn-finish btn-sm" onclick="finishActivity('${a.id}',event)">&#10003; Finalizar</button>`;
+  } else if (a.status==='completada') {
+    const dur = a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';
+    actionBtns = `<span style="color:var(--green);font-size:.78rem;font-family:DM Mono">&#10003; Completada ${dur?'&middot; '+dur:''}</span>`;
+  }
+  if (fromList && a.status==='pendiente') {
+    actionBtns = `<button class="btn btn-accent btn-sm" onclick="addToToday('${a.id}',event)">+ Agregar a mi d&#237;a</button>`;
+  }
+  return `<div class="act-card" id="card-${a.id}">
+    <div class="act-card-header" onclick="toggleCardTec('${a.id}')">
+    <div class="act-status-dot dot-${a.status}"></div>
+    <div class="act-card-info">
+    <div class="act-card-title">${a.title}</div>
+    <div class="act-card-meta"><span class="act-type-pill type-${a.type}">${a.type}</span>${timeStr?`<span class="act-time">${timeStr}</span>`:''}</div>
+    </div>
+    <span class="act-card-arrow">&#8250;</span>
+    </div>
+    <div class="act-card-body">
+    ${a.description?`<div class="desc-box">${a.description}</div>`:''}
+    <div class="epp-banner"><div class="epp-icon">&#9888;</div><div class="epp-text"><strong>EPP obligatorio:</strong> Usar casco, guantes, botas de seguridad y cualquier equipo de protecci&#243;n adicional requerido para esta actividad.</div></div>
+    <div class="act-actions">${actionBtns}</div>
+    ${a.status!=='pendiente'?`
+    <div class="images-section">
+    <div class="comments-title">Im&#225;genes de evidencia</div>
+    <div class="images-grid" id="imgs-${a.id}"></div>
+    <input type="file" class="img-file-input" id="file-${a.id}" accept="image/*" multiple onchange="handleImageUpload('${a.id}',this)">
+    <button class="img-upload-btn" onclick="document.getElementById('file-${a.id}').click()">\ud83d\udcf7 Subir im&#225;genes \u2192 Drive</button>
+    </div>`:''}
+    <div class="comments-section">
+    <div class="comments-title">Comentarios</div>
+    <div id="cmts-${a.id}"></div>
+    <div class="comment-input-wrap">
+    <input class="comment-input" id="cmt-input-${a.id}" placeholder="Agregar comentario..." onkeydown="if(event.key==='Enter')addComment('${a.id}')">
+    <button class="btn btn-outline btn-sm" onclick="addComment('${a.id}')">Enviar</button>
+    </div>
+    </div>
+    </div>
+  </div>`;
+}
+function toggleCardTec(id) {
+  const card = document.getElementById('card-'+id);
+  if (card.classList.toggle('open')) {
+    loadComments(id); loadImages(id);
+    if (document.getElementById('timer-'+id)) startTimerDisplay(id);
+  }
+}
+// CONFIRM START
+function showConfirm(actId, e) {
+  if (e) e.stopPropagation();
+  pendingStartActId = actId;
+  sb.from('activities').select('title,description').eq('id',actId).single().then(({data})=>{
+    document.getElementById('confirm-title').textContent = data?.title || 'Confirmar actividad';
+    document.getElementById('confirm-desc').textContent = data?.description || 'Ejecutar siguiendo los procedimientos establecidos.';
+    document.getElementById('confirm-overlay').classList.add('open');
+  });
+}
+function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); pendingStartActId=null; }
+async function confirmStart() {
+  if (!pendingStartActId) return;
+  closeConfirm();
+  await startActivity(pendingStartActId);
+}
+async function addToToday(id, e) {
+  if (e) e.stopPropagation();
+  const today = new Date().toISOString().split('T')[0];
+  const todayWeek = allWeeks.find(w=>today>=w.start_date&&today<=w.end_date);
+  const { error } = await sb.from('activities').update({ scheduled_date: today, week_id: todayWeek?todayWeek.id:selectedWeekId }).eq('id', id);
+  if (error) { showToast('Error', 'error'); return; }
+  showToast('Agregada a hoy', 'success');
+  tecTab('today');
+  loadTecnicoToday(); loadTecnicoList();
+}
+async function moveToTomorrow(id, e) {
+  if (e) e.stopPropagation();
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const { error } = await sb.from('activities').update({ scheduled_date: tomorrowStr }).eq('id', id);
+  if (error) { showToast('Error', 'error'); return; }
+  showToast('Movida a ma&#241;ana &#10003;', 'success'); loadTecnicoToday();
+}
+// ACTIVITY ACTIONS
