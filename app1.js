@@ -763,7 +763,7 @@ async function loadTecWeekOverview() {
     var fixedDot = fixedCount>0 ? '<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">'
       + Array.from({length:Math.min(fixedCount,3)}).map(function(){ return '<div style="width:3px;height:3px;border-radius:50%;background:var(--fixed);opacity:.7"></div>'; }).join('')
       + '</div>' : '';
-    return '<div data-date="'+dateStr+'" onclick="tecJumpToDay(this.dataset.date)" style="flex:1;min-width:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">'
+    return '<div data-date="'+dateStr+'" onclick="tecJumpToDay(this.dataset.date)" style="min-width:44px;flex-shrink:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:6px 4px;text-align:center;cursor:pointer">'
       + '<div style="font-size:.6rem;font-weight:700;color:'+tc+'">'+days[i]+'</div>'
       + '<div style="font-size:.72rem;font-weight:600;color:'+tc+';line-height:1.3">'+d.getDate()+'</div>'
       + (total>0 ? '<div style="font-size:.5rem;color:'+tc+';opacity:.85">'+done+'/'+total+'</div>' : '<div style="font-size:.5rem;color:var(--muted)">libre</div>')
@@ -853,7 +853,7 @@ async function loadSupWeekOverview() {
     else if(total>0){ bg='var(--card)'; border='var(--border2)'; tc='var(--text)'; }
     else{ bg='var(--card)'; border='var(--border)'; tc='var(--muted)'; }
     const todayDot = isToday && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin:2px auto 0"></div>' : '';
-    return '<div data-date="'+dateStr+'" onclick="supJumpToDay(this.dataset.date)" style="flex:1;min-width:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">'
+    return '<div data-date="'+dateStr+'" onclick="supJumpToDay(this.dataset.date)" style="min-width:44px;flex-shrink:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:6px 4px;text-align:center;cursor:pointer">'
       + '<div style="font-size:.6rem;font-weight:700;color:'+tc+'">'+days[i]+'</div>'
       + '<div style="font-size:.72rem;font-weight:600;color:'+tc+';line-height:1.3">'+d.getDate()+'</div>'
       + (total>0 ? '<div style="font-size:.5rem;color:'+tc+';opacity:.85">'+done+'/'+total+'</div>' : '<div style="font-size:.5rem;color:var(--muted)">libre</div>')
