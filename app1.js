@@ -223,10 +223,11 @@ function selectWeekSup(id, el) {
   el.classList.add('active'); loadDashboard();
 }
 function populateUserSelects() {
-  const tecnicos = allUsers.filter(u=>u.role==='tecnico');
+  const allAssignable = allUsers; // include supervisor + tecnicos
   ['new-assigned','m-assigned'].forEach(id => {
     const el = document.getElementById(id); if (!el) return;
-    el.innerHTML = tecnicos.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+    el.innerHTML = '<option value="">— Sin asignar —</option>'
+      + allAssignable.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
   });
   ['new-week','m-week'].forEach(id => {
     const el = document.getElementById(id); if (!el) return;
