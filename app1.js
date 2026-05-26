@@ -206,7 +206,7 @@ async function loadDashboard() {
 function renderActCardSup(a) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
-  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div class="timer-display" id="timer-sup-'+a.id+'" data-started="'+(a.started_at||'')+'">00:00:00</div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
+  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div style="font-size:.7rem;color:var(--muted2)">'+(a.started_at?'&#9654; '+new Date(a.started_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}):'')+' </div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
     <div class="act-status-dot dot-${a.status}"></div>
@@ -780,18 +780,20 @@ function tecJumpToDay(dateStr) {
 async function startDirectly(id) {
   if(!id || id === 'null') return;
   const startedAt = new Date().toISOString();
+  const today = new Date().toISOString().split('T')[0];
+  // Move to today if activity is on another day
   const { error } = await sb.from('activities').update({
     status: 'en_progreso',
-    started_at: startedAt
+    started_at: startedAt,
+    scheduled_date: today
   }).eq('id', id);
   if(error) { showToast('Error: ' + error.message, 'error'); return; }
+  // Jump to today
+  selectedDayTec = new Date();
+  const mw = allWeeks.find(function(w){ return today >= w.start_date && today <= w.end_date; });
+  if(mw) selectedWeekId = mw.id;
   showToast('Actividad iniciada', 'success');
-  await loadTecnicoToday();
-  // Start timer immediately after reload
-  setTimeout(function(){
-    const timerEl = document.getElementById('timer-'+id);
-    if(timerEl) startTimerDisplay(id, startedAt);
-  }, 300);
+  loadTecnicoToday();
 }
 
 async function cancelStart(id) {
