@@ -196,6 +196,7 @@ function switchTab(tab) {
   document.getElementById('bn-'+tab)?.classList.add('active');
   if (tab==='stats') loadStats();
   if (tab==='dashboard') loadDashboard();
+  if (tab==='add') { populateWeekSelectors(); populateUserSelects(); }
 }
 function populateWeekSelectors(){
   var week=allWeeks.find(function(w){return w.id===selectedWeekId;});
