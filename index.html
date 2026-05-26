@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AVI-MEX &middot; Mantenimiento</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style> :root {--bg:#e8e9ec;--surface:#ededef;--card:#f2f2f4;--card2:#e5e6e9;--border:#d0d2d8;--border2:#b8bbc4;--accent:#1f2937;--accent2:#111827;--orange:#ea580c;--blue:#1d4ed8;--green:#15803d;--red:#b91c1c;--purple:#7c3aed;--text:#111827;--muted:#6b7280;--muted2:#4b5563;--pedro:#1d4ed8;--said:#15803d;--fixed:#d97706;--prev:#7c3aed;--pend:#ea580c} *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent} html,body{height:100%} body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px} .screen{display:none;min-height:100vh;flex-direction:column} .screen.active{display:flex} #login-screen{align-items:center;justify-content:center;background:linear-gradient(145deg,#1f2937,#374151,#111827);padding:24px} .login-box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border2);border-radius:20px;overflow:hidden} .login-header{padding:32px 28px 20px;background:linear-gradient(135deg,#1f2937,#374151);border-bottom:none;text-align:center} .login-logo{font-family:'Bebas Neue';font-size:2rem;letter-spacing:4px;color:#fff;line-height:1} .login-sub{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:6px} .login-body{padding:28px} .user-select-label{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px} .user-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:24px} .user-btn{padding:14px 18px;border-radius:10px;border:1.5px solid var(--border2);background:var(--card2);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;color:var(--text);font-family:'DM Sans';font-size:.9rem;font-weight:500} .user-btn:hover{border-color:var(--accent);background:rgba(240,192,64,.06)} .user-btn.selected{border-color:var(--accent);background:rgba(240,192,64,.1)} .user-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:1rem;flex-shrink:0} .av-julian{background:rgba(240,192,64,.2);color:var(--accent)} .av-pedro{background:rgba(61,142,240,.2);color:var(--pedro)} .av-said{background:rgba(61,200,122,.2);color:var(--said)} .pin-label{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px} .pin-display{display:flex;gap:10px;justify-content:center;margin-bottom:20px} .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .2s} .pin-dot.filled{background:var(--accent);border-color:var(--accent)} .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .pin-key{padding:16px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-family:'DM Mono';font-size:1.1rem;font-weight:500;cursor:pointer;text-align:center;transition:all .15s;user-select:none} .pin-key:active{transform:scale(.94);background:var(--border2)} .pin-key.del{color:var(--muted2)} .pin-key.enter{background:var(--orange);color:#fff;font-weight:700;grid-column:span 2} .pin-key.enter:active{background:var(--accent2)} .login-error{text-align:center;color:var(--red);font-size:.78rem;font-family:'DM Mono';margin-top:12px;min-height:20px} .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--accent);border-bottom:none;position:sticky;top:0;z-index:100;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)} .topbar-logo{font-family:'Bebas Neue';font-size:1.2rem;letter-spacing:3px;color:#fff;height:18px;background:var(--border2)} .topbar-title{font-size:.8rem;color:rgba(255,255,255,.85);flex:1} .topbar-user{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted2)} .topbar-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:.85rem} .logout-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'DM Mono';font-size:.6rem;padding:4px 10px;border-radius:4px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .2s} .logout-btn:hover{border-color:var(--red);color:var(--red)} .bottom-nav{display:flex;background:#f2f2f4;border-top:1px solid var(--border);position:sticky;bottom:0;z-index:100;flex-shrink:0} .bnav-btn{flex:1;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:var(--muted);cursor:pointer;transition:color .2s;font-family:'DM Mono';font-size:.55rem;letter-spacing:1px;text-transform:uppercase} .bnav-btn.active{color:var(--orange)} .bnav-btn svg{width:20px;height:20px} .content{flex:1;overflow-y:auto;padding:20px} .tab-panel{display:none} .tab-panel.active{display:block} .sec-title{font-family:'Bebas Neue';font-size:1.4rem;letter-spacing:3px;color:var(--text);margin-bottom:4px} .sec-sub{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:18px} .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px} .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px} .stat-label{font-family:'DM Mono';font-size:.58rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px} .stat-value{font-family:'Bebas Neue';font-size:2rem;letter-spacing:2px;line-height:1} .stat-sub{font-size:.72rem;color:var(--muted2);margin-top:4px} .progress-wrap{margin-bottom:16px} .progress-header{display:flex;justify-content:space-between;margin-bottom:6px} .progress-label{font-size:.8rem;color:var(--muted2)} .progress-pct{font-family:'DM Mono';font-size:.75rem;color:var(--orange)} .progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden} .progress-fill{height:100%;border-radius:3px;transition:width .5s ease} .activity-list{display:flex;flex-direction:column;gap:10px} .act-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.06)} .act-card:hover{border-color:var(--border2)} .act-card-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer} .act-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0} .dot-pendiente{background:var(--muted)} .dot-en_progreso{background:var(--accent);box-shadow:0 0 8px rgba(240,192,64,.5)} .dot-completada{background:var(--green)} .dot-cancelada{background:var(--red)} .act-card-info{flex:1;min-width:0} .act-card-title{font-size:.85rem;font-weight:500;line-height:1.3} .act-card-meta{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap} .act-type-pill{font-family:'DM Mono';font-size:.56rem;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px} .type-fija{background:rgba(240,192,64,.12);color:var(--fixed)} .type-preventivo{background:rgba(144,96,224,.12);color:var(--prev)} .type-pendiente{background:rgba(224,112,64,.12);color:var(--pend)} .type-correctivo{background:rgba(224,80,80,.12);color:var(--red)} .act-time{font-family:'DM Mono';font-size:.6rem;color:var(--muted)} .act-card-arrow{color:var(--muted);font-size:.8rem;transition:transform .2s} .act-card.open .act-card-arrow{transform:rotate(90deg)} .act-card-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)} .act-card.open .act-card-body{display:block;padding-top:14px} .btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:.78rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:6px} .btn-start{background:var(--accent);color:#0a0e18} .btn-start:hover{background:var(--accent2)} .btn-finish{background:var(--green);color:#050e08} .btn-finish:hover{background:#30b060} .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted2)} .btn-outline:hover{border-color:var(--accent);color:var(--accent)} .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)} .btn-primary{background:var(--blue);color:#fff} .btn-primary:hover{background:#2a7de0} .btn-sm{padding:6px 12px;font-size:.72rem} .btn-accent{background:var(--accent);color:#0a0e18;font-weight:700} .btn:disabled{opacity:.4;cursor:not-allowed} .timer-display{font-family:'DM Mono';font-size:1.4rem;color:var(--accent);text-align:center;padding:10px;background:rgba(240,192,64,.06);border:1px solid rgba(240,192,64,.2);border-radius:8px;margin-bottom:14px;letter-spacing:3px} .comments-section{margin-top:14px} .comments-title{font-family:'DM Mono';font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px} .comment-item{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px} .comment-meta{display:flex;gap:8px;align-items:center;margin-bottom:4px} .comment-author{font-size:.72rem;font-weight:600} .comment-time{font-family:'DM Mono';font-size:.6rem;color:var(--muted)} .comment-body{font-size:.8rem;color:var(--muted2);line-height:1.4} .comment-input-wrap{display:flex;gap:8px;margin-top:10px} .comment-input{flex:1;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans';font-size:.82rem;outline:none;transition:border-color .2s} .comment-input:focus{border-color:var(--accent)} .comment-input::placeholder{color:var(--muted)} .images-section{margin-top:14px} .images-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px} .img-thumb{aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.65rem;font-family:'DM Mono';cursor:pointer;text-decoration:none;text-align:center;padding:4px} .img-upload-btn{width:100%;padding:12px;border:1.5px dashed var(--border2);border-radius:8px;background:transparent;color:var(--muted2);font-family:'DM Sans';font-size:.8rem;cursor:pointer;text-align:center;transition:all .2s} .img-upload-btn:hover{border-color:var(--accent);color:var(--accent)} .img-file-input{display:none} .modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center} .modal-overlay.open{display:flex} .modal{width:100%;max-width:500px;background:var(--card);border-radius:20px 20px 0 0;border:1px solid var(--border2);border-bottom:none;padding:24px;max-height:90vh;overflow-y:auto} .modal-title{font-family:'Bebas Neue';font-size:1.3rem;letter-spacing:2px;color:var(--accent);margin-bottom:20px} .confirm-modal{background:var(--card);border-radius:16px;border:1px solid var(--border2);padding:24px;width:90%;max-width:380px;margin:auto} .confirm-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.8);align-items:center;justify-content:center} .confirm-overlay.open{display:flex} .form-group{margin-bottom:16px} .form-label{font-family:'DM Mono';font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:6px} .form-input,.form-select,.form-textarea{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Sans';font-size:.85rem;outline:none;transition:border-color .2s} .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent)} .form-select option{background:var(--card2)} .form-textarea{resize:vertical;min-height:80px} .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px} .person-tag{font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:2px;padding:4px 14px;border-radius:20px} .tag-pedro{background:rgba(61,142,240,.15);color:var(--pedro);border:1px solid rgba(61,142,240,.3)} .tag-said{background:rgba(61,200,122,.15);color:var(--said);border:1px solid rgba(61,200,122,.3)} .tag-all{background:rgba(240,192,64,.15);color:var(--accent);border:1px solid rgba(240,192,64,.3)} .person-header-row{display:flex;align-items:center;gap:10px;margin-bottom:14px} .live-badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono';font-size:.6rem;color:var(--green);background:rgba(61,200,122,.1);border:1px solid rgba(61,200,122,.3);padding:2px 8px;border-radius:20px;letter-spacing:1px;text-transform:uppercase} .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite} @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}} .week-selector{display:flex;gap:8px;overflow-x:auto;margin-bottom:20px;padding-bottom:4px} .week-chip{background:var(--card);border:1px solid var(--border);color:var(--muted2);font-family:'DM Mono';font-size:.65rem;padding:6px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;transition:all .2s} .week-chip.active{background:var(--orange);color:#fff;border-color:var(--accent);font-weight:700} .epp-banner{background:rgba(224,112,64,.1);border:1px solid rgba(224,112,64,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start} .epp-icon{font-size:1.2rem;flex-shrink:0} .epp-text{font-size:.78rem;color:#e07040;line-height:1.4} .desc-box{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;color:var(--muted2);line-height:1.6} .desc-edit-btn{font-family:'DM Mono';font-size:.58rem;color:var(--muted);cursor:pointer;text-decoration:underline;float:right;margin-top:4px} .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px} .person-stats-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px} .psc-name{font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:2px;margin-bottom:12px} .psc-name.pedro{color:var(--pedro)} .psc-name.said{color:var(--said)} .psc-stat{display:flex;justify-content:space-between;margin-bottom:6px} .psc-label{font-size:.72rem;color:var(--muted2)} .psc-val{font-family:'DM Mono';font-size:.75rem;color:var(--text);font-weight:500} .activity-time-list{display:flex;flex-direction:column;gap:8px} .atl-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center} .atl-name{font-size:.8rem;flex:1;padding-right:12px;line-height:1.3} .atl-time{font-family:'DM Mono';font-size:.72rem;color:var(--accent);white-space:nowrap} .tomorrow-btn{font-family:'DM Mono';font-size:.6rem;color:var(--muted);cursor:pointer;text-decoration:underline;margin-left:8px} .empty-state{text-align:center;padding:40px 20px;color:var(--muted)} .empty-icon{font-size:2.5rem;margin-bottom:10px} .empty-text{font-size:.82rem} .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-family:'DM Mono';font-size:.75rem;letter-spacing:1px} .spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:10px} @keyframes spin{to{transform:rotate(360deg)}} .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border2);color:var(--text);font-size:.8rem;padding:10px 18px;border-radius:20px;z-index:1000;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap} .toast.show{opacity:1;transform:translateX(-50%) translateY(0)} .toast.success{border-color:var(--green);color:var(--green)} .toast.error{border-color:var(--red);color:var(--red)} .fab{position:fixed;bottom:80px;right:20px;z-index:200;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#0a0e18;border:none;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(240,192,64,.35);transition:all .2s} .fab:hover{transform:scale(1.08)} .fab.hidden{display:none} .today-header{background:linear-gradient(135deg,#0d1428,#151c2e);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:18px} .today-date{font-family:'Bebas Neue';font-size:1.6rem;letter-spacing:3px;color:var(--accent)} .today-sub{font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1px;margin-top:2px} .fixed-act-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(240,192,64,.04);border:1px solid rgba(240,192,64,.12);border-radius:8px;margin-bottom:8px} .fixed-act-time{font-family:'DM Mono';font-size:.65rem;color:var(--fixed);min-width:90px} .fixed-act-name{font-size:.8rem;flex:1} .fixed-act-status{font-family:'DM Mono';font-size:.6rem;padding:2px 8px;border-radius:10px} .fas-prog{background:rgba(240,192,64,.15);color:var(--accent)} .fas-done{background:rgba(61,200,122,.15);color:var(--green)} .fas-pend{background:rgba(96,112,160,.15);color:var(--muted2)} @media(max-width:400px){.stats-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr}} </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="login-header">
+      <div class="login-logo">AVI-MEX</div>
+      <div class="login-sub">Planta Jojutla &middot; Nave 1 y 2 &middot; Mantenimiento</div>
+    </div>
+    <div class="login-body">
+      <div class="user-select-label">Selecciona tu usuario</div>
+      <div class="user-btns" id="user-btns"></div>
+      <div class="pin-label">Ingresa tu PIN</div>
+      <div class="pin-display" id="pin-display">
+        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="pin-pad">
+        <div class="pin-key" onclick="pinKey('1')">1</div><div class="pin-key" onclick="pinKey('2')">2</div><div class="pin-key" onclick="pinKey('3')">3</div>
+        <div class="pin-key" onclick="pinKey('4')">4</div><div class="pin-key" onclick="pinKey('5')">5</div><div class="pin-key" onclick="pinKey('6')">6</div>
+        <div class="pin-key" onclick="pinKey('7')">7</div><div class="pin-key" onclick="pinKey('8')">8</div><div class="pin-key" onclick="pinKey('9')">9</div>
+        <div class="pin-key del" onclick="pinDel()">&#9003;</div><div class="pin-key" onclick="pinKey('0')">0</div>
+        <div class="pin-key enter" onclick="pinEnter()">Entrar</div>
+      </div>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="screen">
+  <div class="topbar">
+    <span style="font-family:'Bebas Neue';font-size:1.2rem;letter-spacing:3px;color:#fff;background:none;border:none;box-shadow:none">AVI-MEX</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-title" id="topbar-title">Mantenimiento</span>
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="topbar-avatar"></div>
+      <span id="topbar-name"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+  <div class="content" id="main-content">
+
+    <!-- SUPERVISOR -->
+    <div id="sup-tabs" style="display:none">
+      <div class="tab-panel active" id="tab-dashboard">
+        <div class="sec-title">Dashboard</div>
+        <div class="sec-sub" id="dashboard-week-label">Semana actual</div>
+        <div class="week-selector" id="week-selector"></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="stat-total">\u2014</div></div>
+          <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value" style="color:var(--green)" id="stat-done">\u2014</div></div>
+          <div class="stat-card"><div class="stat-label">En progreso</div><div class="stat-value" style="color:var(--accent)" id="stat-prog">\u2014</div></div>
+          <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--muted2)" id="stat-pend">\u2014</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header"><span class="progress-label">Pedro</span><span class="progress-pct" id="pct-pedro">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="bar-pedro" style="width:0%;background:var(--pedro)"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header"><span class="progress-label">Said</span><span class="progress-pct" id="pct-said">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="bar-said" style="width:0%;background:var(--said)"></div></div>
+        </div>
+        <div class="person-header-row" style="margin-top:20px">
+          <span class="person-tag tag-all">En tiempo real</span>
+          <span class="live-badge"><span class="live-dot"></span>Live</span>
+        </div>
+        <div id="live-activities"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        <div class="person-section" style="margin-top:24px">
+          <div class="person-header-row"><span class="person-tag tag-pedro">Pedro</span></div>
+          <div class="activity-list" id="acts-pedro"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="person-section">
+          <div class="person-header-row"><span class="person-tag tag-said">Said</span></div>
+          <div class="activity-list" id="acts-said"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:20px 0"></div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:8px;border-left:4px solid var(--green)">Completadas esta semana</div>
+        <div id="acts-completed"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- SEMANA TAB -->
+      <div class="tab-panel" id="tab-semana">
+        <div class="sec-title">Vista Semanal</div>
+        <div class="week-selector" id="week-selector-semana"></div>
+        <div id="semana-table" style="overflow-x:auto"></div>
+      </div>
+
+      <!-- LISTA TAB -->
+      <div class="tab-panel" id="tab-lista">
+        <div class="sec-title">Lista de actividades</div>
+        <div class="sec-sub">Asignar y gestionar preventivos</div>
+        <div id="sup-lista-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- MIS TAREAS JULIAN -->
+      <div class="tab-panel" id="tab-julian">
+        <div class="sec-title">Mis actividades</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button id="jst-hoy" onclick="julianSub('hoy')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange);color:#fff;font-family:'DM Mono';font-size:.65rem;cursor:pointer;font-weight:700">Hoy</button>
+          <button id="jst-lista" onclick="julianSub('lista')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;color:var(--muted2);font-family:'DM Mono';font-size:.65rem;cursor:pointer;font-weight:600">Lista completa</button>
+        </div>
+        <div id="julian-hoy">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 14px">
+            <button onclick="cambiarDiaJulian(-1)" style="background:var(--card2);border:1.5px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:1.1rem;font-weight:700">&#8249;</button>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:1.2rem;font-weight:700;color:var(--orange);line-height:1" id="julian-day-name">-</div>
+              <div style="font-family:'DM Mono';font-size:.65rem;color:var(--muted);margin-top:2px" id="julian-day-date">-</div>
+            </div>
+            <button onclick="cambiarDiaJulian(1)" style="background:var(--card2);border:1.5px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:1.1rem;font-weight:700">&#8250;</button>
+          </div>
+          <div class="activity-list" id="julian-hoy-acts"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div id="julian-lista" style="display:none">
+          <div style="font-weight:700;color:var(--green);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--green)">En progreso</div>
+          <div id="julian-list-prog"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0"></div>
+          <div style="font-weight:700;color:var(--muted2);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--muted2)">Pendientes</div>
+          <div id="julian-list-pend"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0"></div>
+          <div style="font-weight:700;color:var(--green);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--green)">Completadas</div>
+          <div id="julian-list-done"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-stats">
+        <div class="sec-title">Estad&#237;sticas del mes</div>
+        <div class="sec-sub">Avance mensual por semana</div>
+        <div style="margin-bottom:8px;font-weight:700;font-size:.8rem;color:var(--muted2)">Descargar PDF</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="downloadPDF('week')">&#8595; PDF Semanal</button>
+          <button class="btn btn-primary btn-sm" onclick="downloadPDF('month')">&#8595; PDF Mensual</button>
+          <button class="btn btn-primary btn-sm" onclick="downloadPDF('year')">&#8595; PDF Anual</button>
+        </div>
+        <div style="margin-bottom:8px;font-weight:700;font-size:.8rem;color:var(--muted2)">Descargar CSV</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="downloadCSV('current')">&#8595; Semana actual</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadCSV('week')">&#8595; Por semana</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadCSV('month')">&#8595; Por mes</button>
+        </div>
+        <div id="stats-content"><div class="loading"><div class="spinner"></div>Generando estad&#237;sticas...</div></div>
+      </div>
+
+      <div class="tab-panel" id="tab-add">
+        <div class="sec-title">Nueva actividad</div>
+        <div class="sec-sub">Asignar a Pedro o Said</div>
+        <div class="form-group"><label class="form-label">T&#237;tulo</label><input class="form-input" id="new-title" placeholder="Descripci&#243;n de la actividad"></div>
+        <div class="form-group"><label class="form-label">Tipo</label>
+          <select class="form-select" id="new-type">
+            <option value="fija">Fija</option><option value="preventivo">Preventivo</option>
+            <option value="pendiente" selected>Pendiente</option><option value="correctivo">Correctivo</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Asignar a</label><select class="form-select" id="new-assigned"></select></div>
+        <div class="form-group"><label class="form-label">Semana</label><select class="form-select" id="new-week"></select></div>
+        <div class="form-group"><label class="form-label">Fecha programada</label><input class="form-input" id="new-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Hora inicio (fijas)</label><input class="form-input" id="new-start" type="time"></div>
+        <div class="form-group"><label class="form-label">Hora fin (fijas)</label><input class="form-input" id="new-end" type="time"></div>
+        <div class="form-group">
+          <label class="form-label">Descripci&#243;n / instrucciones</label>
+          <textarea class="form-textarea" id="new-desc" placeholder="Se generar&#225; autom&#225;ticamente con IA si lo dejas vac&#237;o..."></textarea>
+          <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="generateDescription()">\u2728 Generar con IA</button>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px" onclick="addActivity()">Agregar actividad</button>
+      </div>
+    </div>
+
+    <!-- T\u00c9CNICO -->
+    <div id="tec-view" style="display:none">
+      <!-- Hoy sub-tab -->
+      <div class="tab-panel active" id="tec-today">
+        <!-- Sub tabs - same style as Julian -->
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button id="tec-sub-hoy" onclick="tecSubTab('hoy')" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange);color:#fff;font-family:'DM Mono';font-size:.65rem;cursor:pointer;font-weight:700">Hoy</button>
+          <button id="tec-sub-lista" onclick="tecSubTab('lista')" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;color:var(--muted2);font-family:'DM Mono';font-size:.65rem;cursor:pointer;font-weight:600">Lista completa</button>
+        </div>
+
+        <!-- HOY panel -->
+        <div id="tec-panel-hoy">
+          <!-- Weekly overview -->
+          <div id="tec-week-overview" style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px"></div>
+
+          <!-- Day navigation - same as Julian -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 14px">
+            <button onclick="cambiarDiaTec(-1)" style="background:var(--card2);border:1.5px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:1.1rem;font-weight:700">&#8249;</button>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:1.2rem;font-weight:700;color:var(--orange);line-height:1" id="tec-day-name">-</div>
+              <div style="font-family:'DM Mono';font-size:.65rem;color:var(--muted);margin-top:2px" id="tec-day-date">-</div>
+            </div>
+            <button onclick="cambiarDiaTec(1)" style="background:var(--card2);border:1.5px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:1.1rem;font-weight:700">&#8250;</button>
+          </div>
+          <!-- Progress -->
+          <div style="margin-bottom:16px">
+            <div class="progress-header"><span class="progress-label" id="tec-name-title">Mi progreso</span><span class="progress-pct" id="tec-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="tec-bar" style="width:0%;background:var(--orange)"></div></div>
+          </div>
+          <div style="font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Actividades fijas del dia</div>
+          <div id="tec-fixed-today" style="margin-bottom:14px"></div>
+          <div style="font-family:'DM Mono';font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Actividades asignadas</div>
+          <div class="activity-list" id="tec-today-acts"></div>
+          <div id="tec-completed-section" style="display:none">
+            <div style="height:1px;background:var(--border);margin:16px 0"></div>
+            <div style="font-family:'DM Mono';font-size:.62rem;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Completadas hoy</div>
+            <div class="activity-list" id="tec-today-done"></div>
+          </div>
+        </div>
+
+        <!-- LISTA COMPLETA panel -->
+        <div id="tec-panel-lista" style="display:none">
+          <div style="font-weight:700;color:var(--green);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--green)">En progreso</div>
+          <div id="tec-list-prog"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0"></div>
+          <div style="font-weight:700;color:var(--muted2);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--orange)">Pendientes</div>
+          <div id="tec-list-pend"></div>
+          <div style="height:1px;background:var(--border);margin:14px 0"></div>
+          <div style="font-weight:700;color:var(--green);margin-bottom:8px;padding:6px 10px;background:var(--card);border-radius:8px;border-left:4px solid var(--green)">Completadas</div>
+          <div id="tec-list-done"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-modal">
+    <div class="modal-title" id="confirm-title">Confirmar actividad</div>
+    <div class="epp-banner">
+      <div class="epp-icon">&#9888;</div>
+      <div class="epp-text"><strong>Recuerda usar el EPP correcto:</strong> casco, guantes, botas de seguridad y cualquier equipo adicional requerido para esta actividad.</div>
+    </div>
+    <div class="desc-box" id="confirm-desc"></div>
+    <p style="font-size:.8rem;color:var(--muted2);margin-bottom:16px">&#191;Confirmas que iniciar&#225;s esta actividad?</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-start btn-sm" onclick="confirmStart()">Confirmar e iniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">Nueva actividad</div>
+    <div class="form-group"><label class="form-label">T&#237;tulo</label><input class="form-input" id="m-title" placeholder="Descripci&#243;n"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-select" id="m-type">
+        <option value="fija">Fija</option><option value="preventivo">Preventivo</option>
+        <option value="pendiente" selected>Pendiente</option><option value="correctivo">Correctivo</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Asignar a</label><select class="form-select" id="m-assigned"></select></div>
+    <div class="form-group"><label class="form-label">Semana</label><select class="form-select" id="m-week"></select></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="m-date" type="date"></div>
+    <div class="form-group">
+      <label class="form-label">Descripci&#243;n</label>
+      <textarea class="form-textarea" id="m-desc" placeholder="Dejar vac&#237;o para generar con IA..."></textarea>
+      <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="generateDescModal()">\u2728 Generar con IA</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addActivityModal()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DESC MODAL -->
+<div class="modal-overlay" id="edit-desc-overlay" onclick="closeEditDesc(event)">
+  <div class="modal">
+    <div class="modal-title">Editar descripci&#243;n</div>
+    <input type="hidden" id="edit-desc-act-id">
+    <div class="form-group">
+      <label class="form-label">Descripci&#243;n de la actividad</label>
+      <textarea class="form-textarea" id="edit-desc-text" style="min-height:140px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('edit-desc-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDescription()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<button class="fab hidden" id="fab" data-action="openmodal">+</button>
+<div class="toast" id="toast"></div>
+
+<script src="app1.js"></script>
+<script src="app2.js"></script>
+<script src="app3.js"></script>
+<!-- REASSIGN MODAL -->
+<div class="modal-overlay" id="reassign-overlay" onclick="closeModal2(this,event)">
+  <div class="modal">
+    <div class="modal-title">Reasignar actividad</div>
+    <input type="hidden" id="reassign-act-id">
+    <div id="reassign-act-name" style="font-size:.85rem;color:var(--muted2);margin-bottom:16px;font-weight:500"></div>
+    <div class="form-group"><label class="form-label">Asignar a</label><select class="form-select" id="reassign-user"></select></div>
+    <div class="form-group"><label class="form-label">Nueva fecha</label><input class="form-input" id="reassign-date" type="date"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('reassign-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn" style="background:var(--orange);color:#fff" onclick="saveReassign()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-overlay" onclick="closeModal2(this,event)">
+  <div class="modal">
+    <div class="modal-title">Editar actividad</div>
+    <input type="hidden" id="edit-act-id">
+    <div class="form-group"><label class="form-label">Titulo</label><input class="form-input" id="edit-title"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="edit-type"><option value="fija">Fija</option><option value="preventivo">Preventivo</option><option value="pendiente">Pendiente</option><option value="correctivo">Correctivo</option></select></div>
+    <div class="form-group"><label class="form-label">Asignar a</label><select class="form-select" id="edit-assigned"></select></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="edit-date" type="date"></div>
+    <div class="form-group"><label class="form-label">Hora inicio</label><input class="form-input" id="edit-start" type="time"></div>
+    <div class="form-group"><label class="form-label">Hora fin</label><input class="form-input" id="edit-end" type="time"></div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="edit-notes"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" style="border-color:var(--red);color:var(--red)" onclick="deleteActivityEdit()">Eliminar</button>
+      <button class="btn btn-outline" onclick="document.getElementById('edit-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn" style="background:var(--orange);color:#fff" onclick="saveEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- STATUS MODAL -->
+<div class="modal-overlay" id="status-overlay" onclick="closeModal2(this,event)">
+  <div class="modal">
+    <div class="modal-title">Estado de actividad</div>
+    <div id="status-modal-content" style="padding-bottom:8px"></div>
+    <div class="modal-actions"><button class="btn btn-outline" onclick="document.getElementById('status-overlay').classList.remove('open')">Cerrar</button></div>
+  </div>
+</div>
+<!-- REHACER MODAL -->
+<div class="modal-overlay" id="rehacer-overlay" onclick="closeModal2(this,event)">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--red)">Rehacer actividad</div>
+    <input type="hidden" id="rehacer-act-id">
+    <div id="rehacer-act-name" style="font-size:.85rem;font-weight:500;margin-bottom:4px"></div>
+    <div id="rehacer-act-who" style="font-size:.75rem;color:var(--muted);margin-bottom:16px"></div>
+    <div class="form-group"><label class="form-label">Motivo (obligatorio)</label><textarea class="form-textarea" id="rehacer-motivo" placeholder="Describe por que debe rehacerse..."></textarea></div>
+    <div class="form-group"><label class="form-label">Reasignar a</label><select class="form-select" id="rehacer-user"></select></div>
+    <div class="form-group"><label class="form-label">Nueva fecha</label><input class="form-input" id="rehacer-date" type="date"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('rehacer-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn" style="background:var(--red);color:#fff" onclick="confirmarRehacer()">Rehacer</button>
+    </div>
+  </div>
+</div>
+</body>
+</html
