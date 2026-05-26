@@ -335,7 +335,7 @@ function julianSub(tab){
 function cambiarDiaJulian(delta){selectedDayJulian=new Date(selectedDayJulian);selectedDayJulian.setDate(selectedDayJulian.getDate()+delta);loadJulianDay();}
 async function loadJulianDay(){
   loadSupWeekOverview();
-  var julian=allUsers.find(function(u){return u.name==='Julian';});if(!julian)return;
+  var julian=allUsers.find(function(u){return u.role==='supervisor';});if(!julian)return;
   var dayNames=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
   var monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var today=new Date();today.setHours(0,0,0,0);
@@ -349,7 +349,7 @@ async function loadJulianDay(){
   var isToday=diff===0;
   var mw=allWeeks.find(function(w){return viewDate>=w.start_date&&viewDate<=w.end_date;});
   var weekId=mw?mw.id:selectedWeekId;
-  var r=await sb.from('activities').select('*').eq('assigned_to',julian.id).eq('week_id',weekId).eq('is_fixed',false).eq('scheduled_date',viewDate);
+  var r=await sb.from('activities').select('*').eq('assigned_to',julian.id).eq('is_fixed',false).eq('scheduled_date',viewDate);
   var acts=r.data||[];
   var listEl=document.getElementById('julian-hoy-acts');if(!listEl)return;
   if(!acts.length){listEl.innerHTML='<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-text">'+(isToday?'Sin actividades para hoy':'Sin actividades este dia')+'</div></div>';return;}
@@ -374,7 +374,7 @@ async function finishActivity2(el){var id=el.dataset.id;var r=await sb.from('act
 async function julianRegresar(el){var id=el.dataset.id;if(timers[id]){clearInterval(timers[id]);delete timers[id];}var t=new Date();t.setDate(t.getDate()+1);await sb.from('activities').update({scheduled_date:t.toISOString().split('T')[0],status:'pendiente',started_at:null}).eq('id',id);showToast('Regresada','success');loadJulianDay();}
 async function addComment2(actId,body){if(!body||!body.trim())return;await sb.from('comments').insert({activity_id:actId,user_id:currentUser.id,body:body.trim()});loadComments(actId,'jcmts-'+actId);showToast('Enviado','success');}
 async function loadJulianList(){
-  var julian=allUsers.find(function(u){return u.name==='Julian';});if(!julian)return;
+  var julian=allUsers.find(function(u){return u.role==='supervisor';});if(!julian)return;
   var r=await sb.from('activities').select('*').eq('assigned_to',julian.id).eq('is_fixed',false).order('scheduled_date');
   var all=r.data||[];
   var mkRow=function(a){var dur=a.duration_minutes?' - '+Math.floor(a.duration_minutes/60)+'h '+a.duration_minutes%60+'m':'';var dateStr=a.scheduled_date?new Date(a.scheduled_date+'T12:00:00').toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'}):'Sin fecha';return '<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px"><div style="flex:1"><div style="font-size:.82rem;font-weight:500">'+a.title+'</div><div style="font-size:.65rem;color:var(--muted);margin-top:2px"><span class="act-type-pill type-'+a.type+'" style="font-size:.52rem">'+a.type+'</span><span style="margin-left:6px">'+dateStr+dur+'</span></div></div><button data-id="'+a.id+'" onclick="openEditAct(this.dataset.id)" class="btn btn-outline btn-sm" style="flex-shrink:0">Editar</button></div>';};
