@@ -230,9 +230,12 @@ function populateUserSelects() {
     el.innerHTML = '<option value="">— Sin asignar —</option>'
       + allAssignable.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
   });
+  const todayStr = localDateStr();
+  const curWeek = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
   ['new-week','m-week'].forEach(id => {
     const el = document.getElementById(id); if (!el) return;
-    el.innerHTML = allWeeks.map(w=>`<option value="${w.id}">${w.label}</option>`).join('');
+    const sorted = allWeeks.slice().sort((a,b)=>a.start_date.localeCompare(b.start_date));
+    el.innerHTML = sorted.map(w=>`<option value="${w.id}" ${curWeek && w.id===curWeek.id ? 'selected' : ''}>${w.label}</option>`).join('');
   });
 }
 async function loadDashboard() {
