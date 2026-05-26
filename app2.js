@@ -351,7 +351,7 @@ async function loadJulianDay(){
   var dn=document.getElementById('julian-day-name');var dd=document.getElementById('julian-day-date');
   if(dn)dn.textContent=prefix+dayNames[selectedDayJulian.getDay()].toUpperCase();
   if(dd)dd.textContent=selectedDayJulian.getDate()+' de '+monthNames[selectedDayJulian.getMonth()]+' '+selectedDayJulian.getFullYear();
-  var viewDate=selectedDayJulian.toISOString().split('T')[0];
+  var viewDate=(selectedDayJulian.getFullYear()+'-'+String(selectedDayJulian.getMonth()+1).padStart(2,'0')+'-'+String(selectedDayJulian.getDate()).padStart(2,'0'));
   var isToday=diff===0;
   var mw=allWeeks.find(function(w){return viewDate>=w.start_date&&viewDate<=w.end_date;});
   var weekId=mw?mw.id:selectedWeekId;

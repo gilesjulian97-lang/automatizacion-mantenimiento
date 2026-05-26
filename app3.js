@@ -303,9 +303,8 @@ function updateTecDayHeader(){
   if(nt) nt.textContent='Semana actual';
 }
 function cambiarDiaTec(delta){
-  selectedDayTec=new Date(selectedDayTec);
-  selectedDayTec.setDate(selectedDayTec.getDate()+delta);
-  var d=selectedDayTec.toISOString().split('T')[0];
+  selectedDayTec=new Date(selectedDayTec.getFullYear(),selectedDayTec.getMonth(),selectedDayTec.getDate()+delta,12,0,0);
+  var d=selectedDayTec.getFullYear()+'-'+String(selectedDayTec.getMonth()+1).padStart(2,'0')+'-'+String(selectedDayTec.getDate()).padStart(2,'0');
   var mw=allWeeks.find(function(w){return d>=w.start_date&&d<=w.end_date;});
   if(mw) selectedWeekId=mw.id;
   loadTecnicoToday();

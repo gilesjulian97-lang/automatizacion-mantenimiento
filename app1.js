@@ -41,7 +41,7 @@ function fmtLocalTime(isoStr) {
 
 // STATE
 let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
-let selectedDayTec = new Date();
+let selectedDayTec = (function(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),12,0,0); })();
 let pinBuffer = '', selectedUserId = null, timers = {};
 let pendingStartActId = null;
 // INIT
@@ -518,7 +518,10 @@ async function loadTecnicoToday() {
   if(!sb || !currentUser) { console.error('sb or currentUser not ready'); return; }
   if(!selectedDayTec) selectedDayTec = new Date();
   updateTecDayHeader();
-  const viewDate = selectedDayTec.toISOString().split('T')[0];
+  // Use local date, not UTC
+  const viewDate = selectedDayTec.getFullYear() + '-'
+    + String(selectedDayTec.getMonth()+1).padStart(2,'0') + '-'
+    + String(selectedDayTec.getDate()).padStart(2,'0');
   const todayStr = localDateStr();
   const isToday = viewDate === todayStr;
   const viewDow = new Date(viewDate + 'T12:00:00').getDay();
@@ -766,7 +769,10 @@ async function moveToTomorrow(id, e) {
 async function loadTecWeekOverview() {
   const el = document.getElementById('tec-week-overview');
   if(!el || !currentUser || !sb) return;
-  const viewDate = selectedDayTec.toISOString().split('T')[0];
+  // Use local date, not UTC
+  const viewDate = selectedDayTec.getFullYear() + '-'
+    + String(selectedDayTec.getMonth()+1).padStart(2,'0') + '-'
+    + String(selectedDayTec.getDate()).padStart(2,'0');
   const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
   // Calculate monday manually if no week found
   const viewD = new Date(viewDate + 'T12:00:00');
