@@ -871,3 +871,34 @@ function supJumpToDay(dateStr) {
   if(mw) selectedWeekId = mw.id;
   loadJulianDay();
 }
+
+async function startDirectly(id) {
+  if(!id || id === 'null') return;
+  const now = new Date();
+  const startedAt = now.toISOString();
+  const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const { error } = await sb.from('activities').update({
+    status: 'en_progreso',
+    started_at: startedAt,
+    scheduled_date: today
+  }).eq('id', id);
+  if(error) { showToast('Error: ' + error.message, 'error'); return; }
+  // Jump to today
+  selectedDayTec = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  const mw = allWeeks.find(function(w){ return today >= w.start_date && today <= w.end_date; });
+  if(mw) selectedWeekId = mw.id;
+  showToast('Actividad iniciada', 'success');
+  loadTecnicoToday();
+}
+
+async function cancelStart(id) {
+  if(!id || id === 'null') return;
+  if(timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  const { error } = await sb.from('activities').update({
+    status: 'pendiente',
+    started_at: null
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  showToast('Inicio cancelado', 'success');
+  loadTecnicoToday();
+}
