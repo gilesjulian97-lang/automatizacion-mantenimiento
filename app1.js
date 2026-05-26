@@ -734,13 +734,20 @@ async function loadTecWeekOverview() {
   if(!el || !currentUser || !sb) return;
   const viewDate = selectedDayTec.toISOString().split('T')[0];
   const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
-  if(!mw) return;
+  // Calculate monday manually if no week found
+  const viewD = new Date(viewDate + 'T12:00:00');
+  const dayOfWeek = viewD.getDay(); // 0=Sun, 1=Mon...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = mw ? new Date(mw.start_date + 'T12:00:00') : new Date(viewD.getTime() + mondayOffset * 86400000);
+  const mondayStr = monday.toISOString().split('T')[0];
+  const sundayStr = new Date(monday.getTime() + 6 * 86400000).toISOString().split('T')[0];
   const { data: weekActs } = await sb.from('activities').select('scheduled_date,status,is_fixed')
-    .eq('assigned_to', currentUser.id).eq('week_id', mw.id);
+    .eq('assigned_to', currentUser.id)
+    .gte('scheduled_date', mondayStr)
+    .lte('scheduled_date', sundayStr);
   const todayStr = new Date().toISOString().split('T')[0];
   const days = ['L','Ma','Mi','J','V','S','D'];
   // Build 7 dates starting from Monday of the week
-  const monday = new Date(mw.start_date + 'T12:00:00');
   const dates = Array.from({length:7}, function(_, i) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
@@ -762,7 +769,7 @@ async function loadTecWeekOverview() {
     else{ bg='var(--card)'; border='var(--border)'; tc='var(--muted)'; }
     const todayDot = isToday && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin:1px auto 0"></div>' : '';
     const fixedDot = fixedCount>0 && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:#f59e0b;margin:1px auto 0"></div>' : '';
-    return '<div data-date="'+dateStr+'" onclick="tecJumpToDay(this.dataset.date)" style="min-width:42px;flex-shrink:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:6px 3px;text-align:center;cursor:pointer">'
+    return '<div data-date="'+dateStr+'" onclick="tecJumpToDay(this.dataset.date)" style="flex:1;min-width:38px;max-width:52px;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">'
       + '<div style="font-size:.6rem;font-weight:700;color:'+tc+'">'+days[i]+'</div>'
       + '<div style="font-size:.75rem;font-weight:600;color:'+tc+'">'+d.getDate()+'</div>'
       + (total>0 ? '<div style="font-size:.5rem;color:'+tc+';opacity:.9">'+done+'/'+total+'</div>' : '<div style="font-size:.5rem;color:var(--muted)">-</div>')
@@ -777,12 +784,18 @@ async function loadSupWeekOverview() {
   if(!el || !sb) return;
   const viewDate = selectedDayJulian ? selectedDayJulian.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
   const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
-  if(!mw) return;
+  const viewD2 = new Date(viewDate + 'T12:00:00');
+  const dow2 = viewD2.getDay();
+  const mOff = dow2 === 0 ? -6 : 1 - dow2;
+  const monday = mw ? new Date(mw.start_date + 'T12:00:00') : new Date(viewD2.getTime() + mOff * 86400000);
+  const mondayStr2 = monday.toISOString().split('T')[0];
+  const sundayStr2 = new Date(monday.getTime() + 6 * 86400000).toISOString().split('T')[0];
   const { data: weekActs } = await sb.from('activities').select('scheduled_date,status')
-    .eq('week_id', mw.id).eq('is_fixed', false);
+    .eq('is_fixed', false)
+    .gte('scheduled_date', mondayStr2)
+    .lte('scheduled_date', sundayStr2);
   const todayStr = new Date().toISOString().split('T')[0];
   const days = ['L','Ma','Mi','J','V','S','D'];
-  const monday = new Date(mw.start_date + 'T12:00:00');
   const dates = Array.from({length:7}, function(_, i) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
@@ -802,7 +815,7 @@ async function loadSupWeekOverview() {
     else if(total>0){ bg='var(--card)'; border='var(--border2)'; tc='var(--text)'; }
     else{ bg='var(--card)'; border='var(--border)'; tc='var(--muted)'; }
     const todayDot = isToday && !isSelected ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin:1px auto 0"></div>' : '';
-    return '<div data-date="'+dateStr+'" onclick="supJumpToDay(this.dataset.date)" style="min-width:42px;flex-shrink:0;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:6px 3px;text-align:center;cursor:pointer">'
+    return '<div data-date="'+dateStr+'" onclick="supJumpToDay(this.dataset.date)" style="flex:1;min-width:38px;max-width:52px;background:'+bg+';border:1.5px solid '+border+';border-radius:8px;padding:5px 2px;text-align:center;cursor:pointer">'
       + '<div style="font-size:.6rem;font-weight:700;color:'+tc+'">'+days[i]+'</div>'
       + '<div style="font-size:.75rem;font-weight:600;color:'+tc+'">'+d.getDate()+'</div>'
       + (total>0 ? '<div style="font-size:.5rem;color:'+tc+';opacity:.9">'+done+'/'+total+'</div>' : '<div style="font-size:.5rem;color:var(--muted)">-</div>')
