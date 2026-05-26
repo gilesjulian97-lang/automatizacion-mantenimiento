@@ -5,6 +5,40 @@ const SUPABASE_KEY = 'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
 
 // Google Drive integration removed
 let sb = null;
+// ── TIMEZONE HELPERS (Mexico UTC-6) ──
+function localDateStr() {
+  // Returns today's date as YYYY-MM-DD in local timezone
+  const d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth()+1).padStart(2,'0') + '-'
+    + String(d.getDate()).padStart(2,'0');
+}
+
+function localTimeStr() {
+  // Returns current time as HH:MM in local timezone
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function localISOStr() {
+  // Returns local datetime as ISO string (for DB storage)
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString();
+}
+
+function dateToLocal(dateStr) {
+  // Parses a YYYY-MM-DD string safely without timezone shift
+  if(!dateStr) return new Date();
+  return new Date(dateStr + 'T12:00:00');
+}
+
+function fmtLocalTime(isoStr) {
+  // Formats a DB timestamp to local HH:MM
+  if(!isoStr) return '--:--';
+  return new Date(isoStr).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+}
+
 // STATE
 let currentUser = null, allUsers = [], allWeeks = [], selectedWeekId = null;
 let selectedDayTec = new Date();
@@ -19,7 +53,7 @@ async function init() {
   ]);
   allUsers = users || [];
   allWeeks = weeks || [];
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr();
   const currentWeek = allWeeks.find(w => todayStr >= w.start_date && todayStr <= w.end_date);
   selectedWeekId = currentWeek ? currentWeek.id : allWeeks[0].id;
   renderUserBtns();
@@ -39,7 +73,7 @@ async function autoUpdateFixedActivities() {
   for (const act of fixedActs) {
     if (act.scheduled_start && act.scheduled_end) {
     if (timeStr >= act.scheduled_start && timeStr < act.scheduled_end) {
-    await sb.from('activities').update({ status: 'en_progreso', started_at: new Date().toISOString() }).eq('id', act.id);
+    await sb.from('activities').update({ status: 'en_progreso', started_at: localISOStr() }).eq('id', act.id);
     }
     }
   }
@@ -50,7 +84,7 @@ async function autoUpdateFixedActivities() {
     if (act.scheduled_end && timeStr >= act.scheduled_end) {
     const started = act.started_at ? new Date(act.started_at) : new Date();
     const mins = Math.round((new Date() - started) / 60000);
-    await sb.from('activities').update({ status: 'completada', finished_at: new Date().toISOString(), duration_minutes: mins }).eq('id', act.id);
+    await sb.from('activities').update({ status: 'completada', finished_at: localISOStr(), duration_minutes: mins }).eq('id', act.id);
     }
   }
 }
@@ -206,7 +240,7 @@ async function loadDashboard() {
 function renderActCardSup(a) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
-  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div style="font-size:.7rem;color:var(--muted2)">'+(a.started_at?'&#9654; '+new Date(a.started_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}):'')+' </div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
+  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div style="font-size:.7rem;color:var(--muted2)">'+(a.started_at?'&#9654; '+fmtLocalTime(a.started_at):'')+' </div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
     <div class="act-status-dot dot-${a.status}"></div>
@@ -485,7 +519,7 @@ async function loadTecnicoToday() {
   if(!selectedDayTec) selectedDayTec = new Date();
   updateTecDayHeader();
   const viewDate = selectedDayTec.toISOString().split('T')[0];
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr();
   const isToday = viewDate === todayStr;
   const viewDow = new Date(viewDate + 'T12:00:00').getDay();
 
@@ -620,7 +654,7 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="startDirectly(this.dataset.id)">&#9654; Iniciar</button>';
     if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    var startStr = a.started_at ? new Date(a.started_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+    var startStr = a.started_at ? fmtLocalTime(a.started_at) : '--:--';
     actionBtns = '<div style="font-size:.75rem;color:var(--muted2);margin-bottom:8px;font-family:monospace">&#9654; Iniciado a las ' + startStr + '</div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
       + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>'
@@ -704,7 +738,7 @@ async function confirmStart() {
   if(confirmBtn) confirmBtn.dataset.actid = '';
   const { error } = await sb.from('activities').update({
     status: 'en_progreso',
-    started_at: new Date().toISOString()
+    started_at: localISOStr()
   }).eq('id', id);
   if(error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Actividad iniciada', 'success');
@@ -712,7 +746,7 @@ async function confirmStart() {
 }
 async function addToToday(id, e) {
   if (e) e.stopPropagation();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   const todayWeek = allWeeks.find(w=>today>=w.start_date&&today<=w.end_date);
   const { error } = await sb.from('activities').update({ scheduled_date: today, week_id: todayWeek?todayWeek.id:selectedWeekId }).eq('id', id);
   if (error) { showToast('Error', 'error'); return; }
@@ -745,7 +779,7 @@ async function loadTecWeekOverview() {
     .eq('assigned_to', currentUser.id)
     .gte('scheduled_date', mondayStr)
     .lte('scheduled_date', sundayStr);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr();
   const days = ['L','Ma','Mi','J','V','S','D'];
   // Build 7 dates starting from Monday of the week
   const dates = Array.from({length:7}, function(_, i) {
@@ -782,7 +816,7 @@ async function loadTecWeekOverview() {
 async function loadSupWeekOverview() {
   const el = document.getElementById('sup-week-overview');
   if(!el || !sb) return;
-  const viewDate = selectedDayJulian ? selectedDayJulian.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  const viewDate = selectedDayJulian ? selectedDayJulian.toISOString().split('T')[0] : localDateStr();
   const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
   const viewD2 = new Date(viewDate + 'T12:00:00');
   const dow2 = viewD2.getDay();
@@ -794,7 +828,7 @@ async function loadSupWeekOverview() {
     .eq('is_fixed', false)
     .gte('scheduled_date', mondayStr2)
     .lte('scheduled_date', sundayStr2);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateStr();
   const days = ['L','Ma','Mi','J','V','S','D'];
   const dates = Array.from({length:7}, function(_, i) {
     const d = new Date(monday);

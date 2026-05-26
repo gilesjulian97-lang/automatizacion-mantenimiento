@@ -73,7 +73,7 @@ async function confirmarRehacer(){
   showToast('Marcada para rehacer','success');loadDashboard();
 }
 async function loadDashboardExtras(acts){
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDateStr();
   var dayName=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   var todayActs=acts.filter(function(a){return !a.is_fixed&&a.scheduled_date===today;});
   var pend=todayActs.filter(function(a){return a.status==='pendiente'||a.status==='revisar';}).length;
@@ -274,14 +274,14 @@ async function loadTecListaCompleta() {
 
   // Start timers for in-progress
   prog.forEach(function(a){
-    if(document.getElementById('timer-'+a.id)) startTimerDisplay(a.id);
+    if(document.getElementById('timer-'+a.id)) startTimerDisplay(a.id, a.started_at);
   });
 }
 
 
 async function addTecToToday(el){
   var id=el.dataset.id;
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDateStr();
   var mw=allWeeks.find(function(w){return today>=w.start_date&&today<=w.end_date;});
   var r=await sb.from('activities').update({scheduled_date:today,week_id:mw?mw.id:selectedWeekId,status:'pendiente'}).eq('id',id);
   if(r.error){showToast('Error','error');return;}
@@ -341,7 +341,7 @@ async function openRehacer(id,e){
   var who=allUsers.find(function(u){return u.id===a.assigned_to;});
   document.getElementById('rehacer-act-who').textContent='Realizada por: '+(who?who.name:'Sin asignar');
   document.getElementById('rehacer-motivo').value='';
-  document.getElementById('rehacer-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rehacer-date').value=localDateStr();
   var sel=document.getElementById('rehacer-user');
   sel.innerHTML='<option value="">- Sin asignar -</option>'+allUsers.map(function(u){
     return '<option value="'+u.id+'"'+(u.id===a.assigned_to?' selected':'')+'>'+u.name+(u.role==='supervisor'?' (Sup)':'')+'</option>';

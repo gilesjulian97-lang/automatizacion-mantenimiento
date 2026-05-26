@@ -65,7 +65,7 @@ async function handleImageUpload(actId, input) {
         reader.readAsDataURL(file);
       });
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g,'-').substring(0,19);
+      const timestamp = localISOStr().replace(/[:.]/g,'-').substring(0,19);
       const fileName = actTitle.substring(0,30).replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '.jpg';
 
       // Send to Apps Script
@@ -210,7 +210,7 @@ async function buildSemanaTable(){
   var days=['Lun','Mar','Mie','Jue','Vie','Sab'];var dowMap=[1,2,3,4,5,6];
   var start=new Date(week.start_date+'T12:00:00');var dateByDow={};
   for(var i=0;i<7;i++){var d=new Date(start);d.setDate(start.getDate()+i);var dow=d.getDay();if(dow!==0)dateByDow[dow]=d.toISOString().split('T')[0];}
-  var today=new Date().toISOString().split('T')[0];var nowStr=new Date().toTimeString().slice(0,5);
+  var today=localDateStr();var nowStr=new Date().toTimeString().slice(0,5);
   var people=[allUsers.find(function(u){return u.name==='Pedro';}),allUsers.find(function(u){return u.name==='Said';}),allUsers.find(function(u){return u.name==='Julian';})].filter(Boolean);
   var html='<table style="width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;font-size:.72rem;min-width:580px;border:1px solid var(--border)">'
     +'<thead><tr style="background:var(--orange)">'
@@ -263,7 +263,7 @@ async function loadSupLista(){
   if(!acts.length){el.innerHTML='<div class="empty-state"><div class="empty-text">Sin actividades pendientes</div></div>';return;}
   var pendientes=acts.filter(function(a){return a.status==='pendiente'||a.status==='en_progreso'||a.status==='revisar';});
   var completadas=acts.filter(function(a){return a.status==='completada';}).sort(function(a,b){return new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at);});
-  var currentMonth=new Date().toISOString().substring(0,7);
+  var currentMonth=localISOStr().substring(0,7);
   var preventivos=pendientes.filter(function(a){return a.type==='preventivo';});
   var extras=pendientes.filter(function(a){return a.type!=='preventivo';});
   var html='';
@@ -375,8 +375,8 @@ async function loadJulianDay(){
   }).join('');;
   acts.filter(function(a){return a.status==='en_progreso';}).forEach(function(a){if(document.getElementById('timer-'+a.id))startTimerDisplay(a.id);});
 }
-async function startActivity2(el){var id=el.dataset.id;await sb.from('activities').update({status:'en_progreso',started_at:new Date().toISOString()}).eq('id',id);showToast('Iniciada','success');loadJulianDay();}
-async function finishActivity2(el){var id=el.dataset.id;var r=await sb.from('activities').select('started_at').eq('id',id).single();var s=r.data&&r.data.started_at?new Date(r.data.started_at):new Date();var mins=Math.round((new Date()-s)/60000);await sb.from('activities').update({status:'completada',finished_at:new Date().toISOString(),duration_minutes:mins}).eq('id',id);if(timers[id]){clearInterval(timers[id]);delete timers[id];}showToast('Completada','success');loadJulianDay();loadDashboard();}
+async function startActivity2(el){var id=el.dataset.id;await sb.from('activities').update({status:'en_progreso',started_at:localISOStr()}).eq('id',id);showToast('Iniciada','success');loadJulianDay();}
+async function finishActivity2(el){var id=el.dataset.id;var r=await sb.from('activities').select('started_at').eq('id',id).single();var s=r.data&&r.data.started_at?new Date(r.data.started_at):new Date();var mins=Math.round((new Date()-s)/60000);await sb.from('activities').update({status:'completada',finished_at:localISOStr(),duration_minutes:mins}).eq('id',id);if(timers[id]){clearInterval(timers[id]);delete timers[id];}showToast('Completada','success');loadJulianDay();loadDashboard();}
 async function julianRegresar(el){var id=el.dataset.id;if(timers[id]){clearInterval(timers[id]);delete timers[id];}var t=new Date();t.setDate(t.getDate()+1);await sb.from('activities').update({scheduled_date:t.toISOString().split('T')[0],status:'pendiente',started_at:null}).eq('id',id);showToast('Regresada','success');loadJulianDay();}
 async function addComment2(actId,body){if(!body||!body.trim())return;await sb.from('comments').insert({activity_id:actId,user_id:currentUser.id,body:body.trim()});loadComments(actId,'jcmts-'+actId);showToast('Enviado','success');}
 async function loadJulianList(){
