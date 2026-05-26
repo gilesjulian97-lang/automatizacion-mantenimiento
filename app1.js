@@ -33,6 +33,25 @@ function dateToLocal(dateStr) {
   return new Date(dateStr + 'T12:00:00');
 }
 
+function getMondayOf(dateStr) {
+  // Returns the Wednesday of the week (Mi-Ma) containing dateStr
+  const d = new Date(dateStr + 'T12:00:00');
+  const dow = d.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  // Week: Wed(3),Thu(4),Fri(5),Sat(6),Sun(0),Mon(1),Tue(2)
+  // offset to get to Wednesday:
+  let offset;
+  if(dow === 3) offset = 0;
+  else if(dow === 4) offset = -1;
+  else if(dow === 5) offset = -2;
+  else if(dow === 6) offset = -3;
+  else if(dow === 0) offset = -4; // Sun
+  else if(dow === 1) offset = -5; // Mon
+  else if(dow === 2) offset = -6; // Tue
+  const wed = new Date(d);
+  wed.setDate(d.getDate() + offset);
+  return wed;
+}
+
 function fmtLocalTime(isoStr) {
   // Formats a DB timestamp to local HH:MM
   if(!isoStr) return '--:--';
@@ -527,13 +546,20 @@ async function loadTecnicoToday() {
   const viewDow = new Date(viewDate + 'T12:00:00').getDay();
 
   if(viewDow === 0) {
-    const fe = document.getElementById('tec-fixed-today');
-    const te = document.getElementById('tec-today-acts');
-    if(fe) fe.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Domingo - dia de descanso</div>';
-    if(te) te.innerHTML = '';
-    document.getElementById('tec-pct').textContent = '0%';
-    document.getElementById('tec-bar').style.width = '0%';
-    return;
+    // Sunday: check if supervisor assigned anything
+    const { data: sundayActs } = await sb.from('activities').select('id')
+      .eq('assigned_to', currentUser.id).eq('scheduled_date', viewDate).eq('is_fixed', false);
+    if(!sundayActs || !sundayActs.length) {
+      const fe = document.getElementById('tec-fixed-today');
+      const te = document.getElementById('tec-today-acts');
+      const ds = document.getElementById('tec-completed-section');
+      if(fe) fe.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Sin actividades fijas este dia</div>';
+      if(te) te.innerHTML = '<div class="empty-state"><div style="font-size:2rem">😴</div><div class="empty-text">D\u00eda de descanso</div></div>';
+      if(ds) ds.style.display = 'none';
+      document.getElementById('tec-pct').textContent = '0%';
+      document.getElementById('tec-bar').style.width = '0%';
+      return;
+    }
   }
   const mw = allWeeks.find(w => viewDate >= w.start_date && viewDate <= w.end_date);
   const weekId = mw ? mw.id : selectedWeekId;
@@ -778,15 +804,16 @@ async function loadTecWeekOverview() {
   const viewD = new Date(viewDate + 'T12:00:00');
   const dayOfWeek = viewD.getDay(); // 0=Sun, 1=Mon...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = mw ? new Date(mw.start_date + 'T12:00:00') : new Date(viewD.getTime() + mondayOffset * 86400000);
-  const mondayStr = monday.toISOString().split('T')[0];
-  const sundayStr = new Date(monday.getTime() + 6 * 86400000).toISOString().split('T')[0];
+  const monday = getMondayOf(viewDate);
+  const mondayStr = monday.getFullYear()+'-'+String(monday.getMonth()+1).padStart(2,'0')+'-'+String(monday.getDate()).padStart(2,'0');
+  const sundayD = new Date(monday); sundayD.setDate(monday.getDate()+6);
+  const sundayStr = sundayD.getFullYear()+'-'+String(sundayD.getMonth()+1).padStart(2,'0')+'-'+String(sundayD.getDate()).padStart(2,'0');
   const { data: weekActs } = await sb.from('activities').select('scheduled_date,status,is_fixed')
     .eq('assigned_to', currentUser.id)
     .gte('scheduled_date', mondayStr)
     .lte('scheduled_date', sundayStr);
   const todayStr = localDateStr();
-  const days = ['L','Ma','Mi','J','V','S','D'];
+  const days = ['Mi','J','V','S','D','L','Ma'];
   // Build 7 dates starting from Monday of the week
   const dates = Array.from({length:7}, function(_, i) {
     const d = new Date(monday);
@@ -827,15 +854,16 @@ async function loadSupWeekOverview() {
   const viewD2 = new Date(viewDate + 'T12:00:00');
   const dow2 = viewD2.getDay();
   const mOff = dow2 === 0 ? -6 : 1 - dow2;
-  const monday = mw ? new Date(mw.start_date + 'T12:00:00') : new Date(viewD2.getTime() + mOff * 86400000);
-  const mondayStr2 = monday.toISOString().split('T')[0];
-  const sundayStr2 = new Date(monday.getTime() + 6 * 86400000).toISOString().split('T')[0];
+  const monday = getMondayOf(viewDate);
+  const mondayStr2 = monday.getFullYear()+'-'+String(monday.getMonth()+1).padStart(2,'0')+'-'+String(monday.getDate()).padStart(2,'0');
+  const sundayD2 = new Date(monday); sundayD2.setDate(monday.getDate()+6);
+  const sundayStr2 = sundayD2.getFullYear()+'-'+String(sundayD2.getMonth()+1).padStart(2,'0')+'-'+String(sundayD2.getDate()).padStart(2,'0');
   const { data: weekActs } = await sb.from('activities').select('scheduled_date,status')
     .eq('is_fixed', false)
     .gte('scheduled_date', mondayStr2)
     .lte('scheduled_date', sundayStr2);
   const todayStr = localDateStr();
-  const days = ['L','Ma','Mi','J','V','S','D'];
+  const days = ['Mi','J','V','S','D','L','Ma'];
   const dates = Array.from({length:7}, function(_, i) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
