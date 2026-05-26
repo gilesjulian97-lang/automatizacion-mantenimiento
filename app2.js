@@ -54,57 +54,51 @@ async function handleImageUpload(actId, input) {
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const monthLabel = monthNames[date.getMonth()] + ' ' + date.getFullYear();
 
-  let uploadedCount = 0;
-  for(const file of files) {
-    try {
-      // Convert to base64
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+  const APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec';
 
-      const timestamp = localISOStr().replace(/[:.]/g,'-').substring(0,19);
-      const fileName = actTitle.substring(0,30).replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '.jpg';
-
-      // Send to Apps Script
-      const payload = JSON.stringify({
-          activityTitle: actTitle,
-          monthLabel: monthLabel,
-          weekLabel: weekLabel,
-          fileName: fileName,
-          fileBase64: base64,
-          mimeType: file.type || 'image/jpeg',
-          uploadedBy: currentUser.name
-      });
-      const response = await fetch('https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec', {
-        method: 'POST',
-        redirect: 'follow',
-        body: payload
-      });
-
-      const result = await response.json();
-      if(!result.success) throw new Error(result.error || 'Error desconocido');
-
-      // Save to Supabase
-      await sb.from('activity_images').insert({
-        activity_id: actId,
-        drive_file_url: result.fileUrl,
-        filename: fileName,
-        uploaded_by: currentUser.id
-      });
-
-      uploadedCount++;
-    } catch(err) {
-      showToast('Error subiendo ' + file.name + ': ' + err.message, 'error');
-    }
+  async function uploadOne(file, index) {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const now = new Date();
+    const ts = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')
+      +'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()+index).padStart(2,'0');
+    const fileName = actTitle.substring(0,25).replace(/[^a-zA-Z0-9]/g,'_') + '_' + ts + '.jpg';
+    const response = await fetch(APPS_SCRIPT, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({
+        activityTitle: actTitle,
+        monthLabel: monthLabel,
+        weekLabel: weekLabel,
+        fileName: fileName,
+        fileBase64: base64,
+        mimeType: file.type || 'image/jpeg',
+        uploadedBy: currentUser.name
+      })
+    });
+    const result = await response.json();
+    if(!result.success) throw new Error(result.error || 'Error');
+    await sb.from('activity_images').insert({
+      activity_id: actId,
+      drive_file_url: result.fileUrl,
+      filename: fileName,
+      uploaded_by: currentUser.id
+    });
+    return true;
   }
 
-  if(uploadedCount > 0) {
-    showToast(uploadedCount + ' imagen(es) subida(s) a Drive', 'success');
-    loadImages(actId);
-  }
+  // Upload all in parallel
+  const results = await Promise.allSettled(files.map((f, i) => uploadOne(f, i)));
+  const ok = results.filter(r => r.status === 'fulfilled').length;
+  const fail = results.filter(r => r.status === 'rejected').length;
+
+  if(ok > 0) showToast(ok + ' foto(s) subida(s) ✓' + (fail > 0 ? ' · ' + fail + ' fallaron' : ''), 'success');
+  else showToast('Error al subir fotos', 'error');
+  loadImages(actId);
 }
 
 // COMMENTS
