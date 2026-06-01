@@ -80,6 +80,16 @@ async function init() {
   if (saved) { currentUser = JSON.parse(saved); showApp(); }
   setInterval(autoUpdateFixedActivities, 60000);
 }
+
+function renderUserBtns() {
+  document.getElementById('user-btns').innerHTML = allUsers.map(u => `
+    <button class="user-btn" id="ubtn-${u.id}" onclick="selectUser('${u.id}')">
+      <div class="user-avatar av-${u.name.toLowerCase()}">${u.name[0]}</div>
+      <span>${u.name}</span>
+      ${u.role==='supervisor'?'<span style="font-size:.6rem;color:var(--accent);font-family:DM Mono">SUPERVISOR</span>':''}
+    </button>`).join('');
+}
+
 // AUTO-UPDATE FIXED ACTIVITIES
 async function autoUpdateFixedActivities() {
   const now = new Date();
