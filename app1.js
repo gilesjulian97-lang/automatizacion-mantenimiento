@@ -83,161 +83,39 @@ async function init() {
 // AUTO-UPDATE FIXED ACTIVITIES
 async function autoUpdateFixedActivities() {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().slice(0,5);
+  const today = localDateStr();
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
   const { data: fixedActs } = await sb.from('activities')
-    .select('*').eq('is_fixed', true).eq('scheduled_date', today)
-    .eq('status', 'pendiente');
-  if (!fixedActs) return;
-  for (const act of fixedActs) {
-    if (act.scheduled_start && act.scheduled_end) {
-    if (timeStr >= act.scheduled_start && timeStr < act.scheduled_end) {
-    await sb.from('activities').update({ status: 'en_progreso', started_at: localISOStr() }).eq('id', act.id);
-    }
+    .select('*').eq('is_fixed', true).eq('scheduled_date', today);
+  if(!fixedActs) return;
+
+  // Deduplicate by title+user+start - process only one per combination
+  const seen = {};
+  const unique = [];
+  fixedActs.forEach(function(a) {
+    const key = a.title + '|' + a.assigned_to + '|' + (a.scheduled_start||'');
+    if(!seen[key]) { seen[key] = true; unique.push(a); }
+  });
+
+  for(const act of unique) {
+    const start = (act.scheduled_start||'').slice(0,5);
+    const end2 = (act.scheduled_end||'').slice(0,5);
+    if(!start || !end2) continue;
+    if(act.status === 'pendiente' && timeStr >= start && timeStr < end2) {
+      await sb.from('activities').update({
+        status: 'en_progreso', started_at: localISOStr()
+      }).eq('id', act.id);
+    } else if(act.status === 'en_progreso' && timeStr >= end2) {
+      const started = act.started_at ? new Date(act.started_at) : now;
+      const mins = Math.max(0, Math.round((now - started) / 60000));
+      await sb.from('activities').update({
+        status: 'completada', finished_at: localISOStr(), duration_minutes: mins
+      }).eq('id', act.id);
     }
   }
-  const { data: inProgressFixed } = await sb.from('activities')
-    .select('*').eq('is_fixed', true).eq('scheduled_date', today).eq('status', 'en_progreso');
-  if (!inProgressFixed) return;
-  for (const act of inProgressFixed) {
-    if (act.scheduled_end && timeStr >= act.scheduled_end) {
-    const started = act.started_at ? new Date(act.started_at) : new Date();
-    const mins = Math.round((new Date() - started) / 60000);
-    await sb.from('activities').update({ status: 'completada', finished_at: localISOStr(), duration_minutes: mins }).eq('id', act.id);
-    }
-  }
 }
-// LOGIN
-function renderUserBtns() {
-  document.getElementById('user-btns').innerHTML = allUsers.map(u => `
-    <button class="user-btn" id="ubtn-${u.id}" onclick="selectUser('${u.id}')">
-    <div class="user-avatar av-${u.name.toLowerCase()}">${u.name[0]}</div>
-    <span>${u.name}</span>
-    ${u.role==='supervisor'?'<span style="font-size:.6rem;color:var(--accent);font-family:DM Mono">SUPERVISOR</span>':''}
-    </button>`).join('');
-}
-function selectUser(id) {
-  selectedUserId = id; pinBuffer = ''; updatePinDots();
-  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('ubtn-'+id)?.classList.add('selected');
-  document.getElementById('login-error').textContent = '';
-}
-function pinKey(k) {
-  if (!selectedUserId) { document.getElementById('login-error').textContent = 'Selecciona un usuario primero'; return; }
-  if (pinBuffer.length >= 4) return;
-  pinBuffer += k; updatePinDots();
-  if (pinBuffer.length === 4) setTimeout(pinEnter, 200);
-}
-function pinDel() { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); }
-function updatePinDots() {
-  for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled', i < pinBuffer.length);
-}
-function pinEnter() {
-  if (!selectedUserId || pinBuffer.length !== 4) return;
-  const user = allUsers.find(u => u.id === selectedUserId);
-  if (!user || user.pin !== pinBuffer) {
-    document.getElementById('login-error').textContent = 'PIN incorrecto';
-    pinBuffer = ''; updatePinDots(); return;
-  }
-  currentUser = user; localStorage.setItem('avimex_user', JSON.stringify(user)); showApp();
-}
-function logout() {
-  localStorage.removeItem('avimex_user'); currentUser = null; selectedUserId = null; pinBuffer = '';
-  updatePinDots(); document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('login-error').textContent = ''; showScreen('login-screen');
-}
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-// APP SETUP
-function showApp() {
-  showScreen('app-screen');
-  document.getElementById('topbar-name').textContent = currentUser.name;
-  const av = document.getElementById('topbar-avatar');
-  av.textContent = currentUser.name[0]; av.className = `topbar-avatar av-${currentUser.name.toLowerCase()}`;
-  if (currentUser.role === 'supervisor') setupSupervisor(); else setupTecnico();
-  autoUpdateFixedActivities();
-}
-// SUPERVISOR
-function setupSupervisor() {
-  document.getElementById('sup-tabs').style.display = 'block';
-  document.getElementById('tec-view').style.display = 'none';
-  // fab removed
-  document.getElementById('bottom-nav').innerHTML = `
-    <button class="bnav-btn active" id="bn-dashboard" data-tab="dashboard">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>Dashboard</button>
-    <button class="bnav-btn" id="bn-lista" data-tab="lista">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Lista</button>
-    <button class="bnav-btn" id="bn-julian" data-tab="julian">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="2" stroke-linecap="round"/></svg>Mis tareas</button>
-    <button class="bnav-btn" id="bn-semana" data-tab="semana">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/></svg>Semana</button>
-    <button class="bnav-btn" id="bn-stats" data-tab="stats">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Estadisticas</button>
-    <button class="bnav-btn" id="bn-add" data-tab="add">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="16" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-width="2" stroke-linecap="round"/></svg>Agregar</button>`;
-  document.getElementById('bottom-nav').addEventListener('click', function(e){
-    var btn = e.target.closest('[data-tab]');
-    if(!btn) return;
-    var tab = btn.dataset.tab;
-    switchTab(tab);
-    if(tab==='lista') loadSupLista();
-    else if(tab==='julian') loadJulianDay();
-    else if(tab==='semana') loadSemana();
-    else if(tab==='stats') loadStats();
-  });
-  populateWeekSelectors(); populateUserSelects(); loadDashboard();
-}
-function switchTab(tab) {
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('bn-'+tab)?.classList.add('active');
-  if (tab==='stats') loadStats();
-  if (tab==='dashboard') loadDashboard();
-  if (tab==='add') { populateWeekSelectors(); populateUserSelects(); }
-}
-function populateWeekSelectors(){
-  var week=allWeeks.find(function(w){return w.id===selectedWeekId;});
-  var lbl=document.getElementById('dashboard-week-label');
-  if(week&&lbl) lbl.textContent=week.label;
-  ['week-selector','week-selector-stats'].forEach(function(id){
-    var el=document.getElementById(id);if(!el)return;
-    el.innerHTML=allWeeks.map(function(w){
-    return '<div class="week-chip'+(w.id===selectedWeekId?' active':'')+' sup-wchip" data-wid="'+w.id+'" data-sel="'+id+'" onclick="selectWeekSupEl(this)">'+w.label+'</div>';
-    }).join('');
-    setTimeout(function(){var a=el.querySelector('.week-chip.active');if(a)a.scrollIntoView({inline:'nearest',behavior:'auto'});},50);
-  });
-}
-function selectWeekSupEl(el){
-  selectedWeekId=el.dataset.wid;
-  var selectorId=el.dataset.sel;
-  var container=document.getElementById(selectorId);
-  if(container) container.querySelectorAll('.sup-wchip').forEach(function(c){c.classList.remove('active');});
-  el.classList.add('active');
-  loadDashboard();
-}
-function selectWeekSup(id, el) {
-  selectedWeekId = id;
-  document.querySelectorAll('#week-selector .week-chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active'); loadDashboard();
-}
-function populateUserSelects() {
-  const allAssignable = allUsers; // include supervisor + tecnicos
-  ['new-assigned','m-assigned'].forEach(id => {
-    const el = document.getElementById(id); if (!el) return;
-    el.innerHTML = '<option value="">— Sin asignar —</option>'
-      + allAssignable.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-  });
-  const todayStr = localDateStr();
-  const curWeek = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
-  ['new-week','m-week'].forEach(id => {
-    const el = document.getElementById(id); if (!el) return;
-    const sorted = allWeeks.slice().sort((a,b)=>a.start_date.localeCompare(b.start_date));
-    el.innerHTML = sorted.map(w=>`<option value="${w.id}" ${curWeek && w.id===curWeek.id ? 'selected' : ''}>${w.label}</option>`).join('');
-  });
-}
+
 async function loadDashboard() {
   if (!selectedWeekId) return;
   const week = allWeeks.find(w=>w.id===selectedWeekId);
