@@ -132,7 +132,7 @@ function selectWeekSup(id,el,selectorId){
 function populateUserSelects(){
   ['new-assigned','m-assigned','edit-assigned'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    el.innerHTML='<option value="">\u2014 Sin asignar \u2014</option>'+allUsers.map(u=>`<option value="${u.id}">${u.name}${u.role==='supervisor'?' (Supervisor)':''}</option>`).join('');
+    el.innerHTML='<option value="">— Sin asignar —</option>'+allUsers.map(u=>`<option value="${u.id}">${u.name}${u.role==='supervisor'?' (Supervisor)':''}</option>`).join('');
   });
   ['new-week','m-week'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
@@ -212,7 +212,7 @@ async function loadDashboard(){
     :completed.map(a=>{
       const who=allUsers.find(u=>u.id===a.assigned_to)?.name||'Sin asignar';
       const whoColor=who==='Pedro'?'var(--pedro)':who==='Said'?'var(--said)':who==='Julian'?'var(--julian)':'var(--muted2)';
-      const finDate=a.finished_at?new Date(a.finished_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'\u2014';
+      const finDate=a.finished_at?new Date(a.finished_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
       const dur=a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';
       return `<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#fff;border:1.5px solid rgba(26,158,92,.2);border-radius:8px;margin-bottom:6px;box-shadow:var(--shadow)">
         <span style="color:var(--green);font-size:1.1rem;flex-shrink:0;font-weight:700">\u2713</span>
@@ -255,7 +255,7 @@ function buildWeeklyTable(acts, week, containerId, showAllUsers=false){
 
   let html=`<table class="week-table"><thead><tr>
     <th style="min-width:55px">${showAllUsers?'Persona':'D\u00eda'}</th>
-    ${days.map((d,i)=>{const date=dateByDow[dowMap[i]];const isToday=date===today;return`<th style="${isToday?'background:rgba(255,255,255,.2)':''}"><div class="wt-day-header" style="color:${isToday?'#fff':'rgba(255,255,255,.9)'}">${d}</div><div class="wt-day-date" style="color:rgba(255,255,255,.7)">${date?date.slice(5).replace('-','/'):'\u2014'}</div></th>`;}).join('')}
+    ${days.map((d,i)=>{const date=dateByDow[dowMap[i]];const isToday=date===today;return`<th style="${isToday?'background:rgba(255,255,255,.2)':''}"><div class="wt-day-header" style="color:${isToday?'#fff':'rgba(255,255,255,.9)'}">${d}</div><div class="wt-day-date" style="color:rgba(255,255,255,.7)">${date?date.slice(5).replace('-','/'):'—'}</div></th>`;}).join('')}
   </tr></thead><tbody>`;
 
   rows.forEach(({user,acts:userActs})=>{
@@ -267,7 +267,7 @@ function buildWeeklyTable(acts, week, containerId, showAllUsers=false){
       const dayActs=userActs.filter(a=>a.scheduled_date===date);
       html+=`<td style="padding:5px;vertical-align:top;background:${isToday?'rgba(26,111,212,.03)':''}">`;
       if(dayActs.length===0){
-        html+=`<div style="font-size:.6rem;color:var(--border2);text-align:center;padding:6px 0">\u2014</div>`;
+        html+=`<div style="font-size:.6rem;color:var(--border2);text-align:center;padding:6px 0">—</div>`;
       }else{
         dayActs.forEach(a=>{
           const isDone=a.status==='completada';
