@@ -104,16 +104,31 @@ function setupSupervisor(){
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Stats</button>
     <button class="bnav-btn" id="bn-add" onclick="switchTab('add')">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="16" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-width="2" stroke-linecap="round"/></svg>Agregar</button>`;
-  populateWeekSelectors();populateUserSelects();loadDashboard();
+  populateWeekSelectors();populateUserSelects();
+  // Hide all panels first, then show dashboard
+  ['dashboard','semana','lista','julian','stats','add'].forEach(function(t){
+    var p = document.getElementById('tab-'+t);
+    if(p) p.style.display = 'none';
+  });
+  document.getElementById('tab-dashboard').style.display = 'block';
+  loadDashboard();
 }
 function switchTab(tab){
-  document.querySelectorAll('#sup-tabs .tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('bn-'+tab)?.classList.add('active');
-  if(tab==='stats')loadStats();
-  if(tab==='dashboard')loadDashboard();
-  if(tab==='julian')loadJulianDay();
+  // Hide ALL panels explicitly
+  ['dashboard','semana','lista','julian','stats','add'].forEach(function(t){
+    var p = document.getElementById('tab-'+t);
+    if(p) p.style.display = 'none';
+  });
+  document.querySelectorAll('.bnav-btn').forEach(function(b){ b.classList.remove('active'); });
+  var active = document.getElementById('tab-'+tab);
+  if(active) active.style.display = 'block';
+  var btn = document.getElementById('bn-'+tab);
+  if(btn) btn.classList.add('active');
+  if(tab==='stats') loadStats();
+  if(tab==='dashboard') loadDashboard();
+  if(tab==='julian') loadJulianDay();
+  if(tab==='lista') loadSupLista();
+  if(tab==='semana') loadSupSemana();
 }
 function populateWeekSelectors(){
   // Newest first (allWeeks already sorted desc)
@@ -174,7 +189,7 @@ async function loadDashboard(){
   });
 
   // Weekly table
-  buildWeeklyTable(acts,week,'sup-weekly-table',true);
+  try { buildWeeklyTable(acts,week,'sup-weekly-table',true); } catch(e) { console.warn('buildWeeklyTable error:',e); }
 
   // Live
   const live=acts.filter(a=>a.status==='en_progreso');
