@@ -158,19 +158,32 @@ function populateUserSelects(){
 
 // \u2500\u2500 DASHBOARD \u2500\u2500
 async function loadDashboard(){
-  // Find current week by date, fallback to selectedWeekId
-  const todayStr = localDateStr();
-  const currentWeek = allWeeks.find(w => todayStr >= w.start_date && todayStr <= w.end_date);
-  if(currentWeek && currentWeek.id !== selectedWeekId) {
-    selectedWeekId = currentWeek.id;
-  }
-  if(!selectedWeekId) { console.warn('No week found for', todayStr); return; }
-  const week = allWeeks.find(w => w.id === selectedWeekId);
-  if(!week) { console.warn('Week not found:', selectedWeekId); return; }
+  // Debug: show what's happening
+  var dbgEl = document.getElementById('stat-total');
+  if(dbgEl) dbgEl.textContent = '...';
   
-  const {data:acts, error:actsErr} = await sb.from('activities').select('*').eq('week_id', selectedWeekId);
-  if(actsErr) { console.error('loadDashboard query error:', actsErr.message); return; }
-  if(!acts) return;
+  const todayStr = localDateStr();
+  const currentWeek = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
+  if(currentWeek) selectedWeekId = currentWeek.id;
+  
+  if(!selectedWeekId) {
+    if(dbgEl) dbgEl.textContent = 'SEM?';
+    return;
+  }
+  const week = allWeeks.find(function(w){ return w.id === selectedWeekId; });
+  if(!week) {
+    if(dbgEl) dbgEl.textContent = 'W?';
+    return;
+  }
+  if(dbgEl) dbgEl.textContent = week.label.substring(0,6);
+  
+  const r = await sb.from('activities').select('*').eq('week_id', selectedWeekId);
+  if(r.error) {
+    if(dbgEl) dbgEl.textContent = 'ERR';
+    return;
+  }
+  const acts = r.data || [];
+  if(dbgEl) dbgEl.textContent = acts.length;
 
   // Check unassigned preventivos for current month
   const currentMonth=new Date().toISOString().substring(0,7);
