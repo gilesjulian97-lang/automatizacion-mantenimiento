@@ -688,11 +688,9 @@ function renderActCardTec(a, fromList=false) {
     actionBtns = '<button class="btn btn-start btn-sm" data-id="' + a.id + '" onclick="startDirectly(this.dataset.id)">&#9654; Iniciar</button>';
     if (!fromList) actionBtns += '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="moveToTomorrow(this.dataset.id,event)">&#8631; Mover a ma&#241;ana</button>';
   } else if (a.status==='en_progreso') {
-    var startStr = a.started_at ? fmtLocalTime(a.started_at) : '--:--';
-    actionBtns = '<div style="font-size:.75rem;color:var(--muted2);margin-bottom:8px;font-family:monospace">&#9654; Iniciado a las ' + startStr + '</div>'
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)">&#10003; Finalizar</button>'
-      + '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="cancelStart(this.dataset.id)" style="border-color:var(--red);color:var(--red)">&#10005; Cancelar inicio</button>'
+    actionBtns = '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      + '<button class="btn btn-finish btn-sm" data-id="' + a.id + '" onclick="finishActivity(this.dataset.id,event)" style="color:#fff">&#10003; Finalizar</button>'
+      + '<button class="btn btn-outline btn-sm" data-id="' + a.id + '" onclick="cancelStart(this.dataset.id)" style="border-color:var(--red);color:var(--red)">&#10005; Cancelar</button>'
       + '</div>';
   } else if (a.status==='completada') {
     const dur = a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';

@@ -1,19 +1,24 @@
 
 async function finishActivity(id, e) {
   if (e) e.stopPropagation();
+  // Require at least 1 photo before finishing
+  const { data: imgs } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  if(!imgs || imgs.length === 0) {
+    showToast('Sube al menos 1 foto antes de finalizar', 'error');
+    return;
+  }
   const { data } = await sb.from('activities').select('started_at').eq('id',id).single();
   const now = new Date();
   const started = data?.started_at ? new Date(data.started_at) : now;
   const mins = Math.max(0, Math.round((now - started) / 60000));
   const { error } = await sb.from('activities').update({
     status: 'completada',
-    finished_at: now.toISOString(),
+    finished_at: localISOStr(),
     duration_minutes: mins
   }).eq('id', id);
   if(error) { showToast('Error', 'error'); return; }
   if(timers[id]) { clearInterval(timers[id]); delete timers[id]; }
-  const h = Math.floor(mins/60), m = mins%60;
-  showToast('Completada' + (h||m ? ' en ' + (h?h+'h ':'') + m+'m' : '') + ' &#10003;', 'success');
+  showToast('Actividad completada &#10003;', 'success');
   loadTecnicoToday();
 }
 function startTimerDisplay(id, startedAt) {
@@ -353,21 +358,11 @@ async function loadJulianDay(){
   var acts=r.data||[];
   var listEl=document.getElementById('julian-hoy-acts');if(!listEl)return;
   if(!acts.length){listEl.innerHTML='<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-text">'+(isToday?'Sin actividades para hoy':'Sin actividades este dia')+'</div></div>';return;}
-  listEl.innerHTML=acts.map(function(a){
-    var dur=a.duration_minutes?Math.floor(a.duration_minutes/60)+'h '+a.duration_minutes%60+'m':'';
-    var btns='';
-    if(!isToday)btns=a.status==='completada'?'<span style="color:var(--green);font-size:.78rem">Completada '+dur+'</span>':'<span style="color:var(--muted);font-size:.78rem">'+a.status+'</span>';
-    else if(a.status==='pendiente')btns='<button class="btn btn-start btn-sm" data-id="'+a.id+'" onclick="startActivity2(this)">Iniciar</button> <button class="btn btn-outline btn-sm" data-id="'+a.id+'" onclick="julianRegresar(this)">Regresar</button>';
-    else if(a.status==='en_progreso')btns='<div class="timer-display" id="timer-'+a.id+'">00:00:00</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-finish btn-sm" data-id="'+a.id+'" onclick="finishActivity2(this)">Finalizar</button><button class="btn btn-outline btn-sm" data-id="'+a.id+'" onclick="julianRegresar(this)">Regresar</button></div>';
-    else if(a.status==='completada')btns='<span style="color:var(--green);font-size:.78rem">Completada '+dur+'</span>';
-    return '<div class="act-card" id="jcard-'+a.id+'"><div class="act-card-header" data-jid="'+a.id+'" onclick="jCardOpen(this)"><div class="act-status-dot dot-'+a.status+'"></div><div class="act-card-info"><div class="act-card-title">'+a.title+'</div><div class="act-card-meta"><span class="act-type-pill type-'+a.type+'">'+a.type+'</span></div></div><span class="act-card-arrow">&#8250;</span></div>'
-    +'<div class="act-card-body"><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">'+btns+'</div>'
-    +'<div class="comments-section"><div class="comments-title">Comentarios</div><div id="jcmts-'+a.id+'"></div>'
-    +'<div class="comment-input-wrap"><input class="comment-input" id="jcmt-'+a.id+'" placeholder="Comentario..." data-id="'+a.id+'" onkeydown="if(event.key===\'Enter\'){addComment2(this.dataset.id,this.value);this.value=\'\';}">'
-    +'<button class="btn btn-outline btn-sm" data-id="'+a.id+'" onclick="var i=document.getElementById(\'jcmt-\'+this.dataset.id);addComment2(this.dataset.id,i.value);i.value=\'\'">Enviar</button></div>'
-    +'</div></div></div>';
-  }).join('');;
-  acts.filter(function(a){return a.status==='en_progreso';}).forEach(function(a){if(document.getElementById('timer-'+a.id))startTimerDisplay(a.id);});
+  listEl.innerHTML = acts.map(function(a){ return renderActCardSup(a); }).join('');
+  acts.filter(function(a){ return a.status==='en_progreso'; }).forEach(function(a){
+    var tEl = document.getElementById('timer-sup-'+a.id);
+    if(tEl) startTimerDisplay(a.id, a.started_at);
+  });
 }
 async function startActivity2(el){var id=el.dataset.id;await sb.from('activities').update({status:'en_progreso',started_at:localISOStr()}).eq('id',id);showToast('Iniciada','success');loadJulianDay();}
 async function finishActivity2(el){var id=el.dataset.id;var r=await sb.from('activities').select('started_at').eq('id',id).single();var s=r.data&&r.data.started_at?new Date(r.data.started_at):new Date();var mins=Math.round((new Date()-s)/60000);await sb.from('activities').update({status:'completada',finished_at:localISOStr(),duration_minutes:mins}).eq('id',id);if(timers[id]){clearInterval(timers[id]);delete timers[id];}showToast('Completada','success');loadJulianDay();loadDashboard();}
