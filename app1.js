@@ -8,7 +8,7 @@ function pinClear(){pinBuffer='';updatePinDots();}
 const SUPABASE_URL='https://eaeuqcdcnkztttkfvbut.supabase.co';
 const SUPABASE_KEY='sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let sb=null;
 
 let currentUser=null,allUsers=[],allWeeks=[],selectedWeekId=null;
 let pinBuffer='',selectedUserId=null,timers={};
