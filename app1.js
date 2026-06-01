@@ -150,6 +150,7 @@ function populateUserSelects(){
 
 // \u2500\u2500 DASHBOARD \u2500\u2500
 async function loadDashboard(){
+
   if(!selectedWeekId)return;
   const week=allWeeks.find(w=>w.id===selectedWeekId);
   const {data:acts}=await sb.from('activities').select('*').eq('week_id',selectedWeekId);
@@ -294,7 +295,7 @@ function buildWeeklyTable(acts, week, containerId, showAllUsers=false){
   wrap.innerHTML=html;
 }
 
-// \u2500\u2500 SUPERVISOR SEMANA \u2500\u2500
+// \u2500\u2500 SUPERVISOR SEMANA \u2500\u250
 async function loadSupSemana(){
   const week=allWeeks.find(w=>w.id===selectedWeekId);
   const el=document.getElementById('week-selector-semana-sup');
