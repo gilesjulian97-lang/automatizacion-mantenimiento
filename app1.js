@@ -81,6 +81,55 @@ async function init() {
   setInterval(autoUpdateFixedActivities, 60000);
 }
 
+function selectUser(id){selectedUserId=id;pinBuffer='';updatePinDots();document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('ubtn-'+id)?.classList.add('selected');document.getElementById('login-error').textContent='';}
+function pinKey(k){if(!selectedUserId){document.getElementById('login-error').textContent='Selecciona un usuario';return;}if(pinBuffer.length>=4)return;pinBuffer+=k;updatePinDots();if(pinBuffer.length===4)setTimeout(pinEnter,200);}
+function showApp(){
+  showScreen('app-screen');
+  document.getElementById('topbar-name').textContent=currentUser.name;
+  const av=document.getElementById('topbar-avatar');
+  av.textContent=currentUser.name[0];av.className=`topbar-avatar av-${currentUser.name.toLowerCase()}`;
+  // Reset to today always
+  selectedDay=new Date();selectedDayJulian=new Date();
+  if(currentUser.role==='supervisor')setupSupervisor();else setupTecnico();
+}
+function setupSupervisor(){
+  document.getElementById('sup-tabs').style.display='block';
+  document.getElementById('tec-view').style.display='none';
+  document.getElementById('fab').classList.remove('hidden');
+  document.getElementById('bottom-nav').innerHTML=`
+    <button class="bnav-btn active" id="bn-dashboard" onclick="switchTab('dashboard')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>Dashboard</button>
+    <button class="bnav-btn" id="bn-julian" onclick="switchTab('julian')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="2" stroke-linecap="round"/></svg>Mis tareas</button>
+    <button class="bnav-btn" id="bn-semana" onclick="switchTab('semana');loadSupSemana()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/></svg>Semana</button>
+    <button class="bnav-btn" id="bn-lista" onclick="switchTab('lista');loadSupLista()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Lista</button>
+    <button class="bnav-btn" id="bn-stats" onclick="switchTab('stats')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Stats</button>
+    <button class="bnav-btn" id="bn-add" onclick="switchTab('add')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="16" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-width="2" stroke-linecap="round"/></svg>Agregar</button>`;
+  populateWeekSelectors();populateUserSelects();loadDashboard();
+}
+function populateUserSelects(){
+  ['new-assigned','m-assigned','edit-assigned'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">\u2014 Sin asignar \u2014</option>'+allUsers.map(u=>`<option value="${u.id}">${u.name}${u.role==='supervisor'?' (Supervisor)':''}</option>`).join('');
+  });
+  ['new-week','m-week'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=allWeeks.map(w=>`<option value="${w.id}" ${w.id===selectedWeekId?'selected':''}>${w.label}</option>`).join('');
+  });
+}
+function populateWeekSelectors(){
+  // Newest first (allWeeks already sorted desc)
+  ['week-selector','week-selector-stats','week-selector-semana-sup'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=allWeeks.map(w=>`<div class="week-chip ${w.id===selectedWeekId?'active':''}" onclick="selectWeekSup('${w.id}',this,'${id}')">${w.label}</div>`).join('');
+  });
+}
+function updatePinDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);}
+
 function renderUserBtns() {
   document.getElementById('user-btns').innerHTML = allUsers.map(u => `
     <button class="user-btn" id="ubtn-${u.id}" onclick="selectUser('${u.id}')">
@@ -867,4 +916,11 @@ async function supFinishActivity(id) {
   showToast('Actividad completada &#10003;','success');
   loadDashboard();
   if(document.getElementById('julian-hoy-acts')) loadJulianDay();
+}
+
+function pinEnter(){
+  if(!selectedUserId||pinBuffer.length!==4)return;
+  const user=allUsers.find(u=>u.id===selectedUserId);
+  if(!user||user.pin!==pinBuffer){document.getElementById('login-error').textContent='PIN incorrecto';pinBuffer='';updatePinDots();return;}
+  currentUser=user;localStorage.setItem('avimex_user',JSON.stringify(user));showApp();
 }
