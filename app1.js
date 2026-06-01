@@ -1118,7 +1118,6 @@ async function loadTecnicoToday() {
   const pct = wTotal ? Math.round(wDone/wTotal*100) : 0;
   document.getElementById('tec-pct').textContent = pct + '%';
   document.getElementById('tec-bar').style.width = pct + '%';
-  loadTecWeekOverview();
   // Get non-fixed activities for this exact date
   const { data: dayActs } = await sb.from('activities').select('*')
     .eq('assigned_to', currentUser.id)
