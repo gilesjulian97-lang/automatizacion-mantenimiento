@@ -567,20 +567,19 @@ function setupTecnico(){
   document.getElementById('fab').classList.add('hidden');
   document.getElementById('tec-name-title').textContent='Hola, '+currentUser.name;
   document.getElementById('bottom-nav').innerHTML=`
-    <button class="bnav-btn active" id="bn-tec-hoy" onclick="tecTab('hoy')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/></svg>Hoy</button>
-    <button class="bnav-btn" id="bn-tec-semana" onclick="tecTab('semana');loadTecSemana()">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/></svg>Semana</button>
-    <button class="bnav-btn" id="bn-tec-lista" onclick="tecTab('lista')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Lista</button>`;
+    <button class="bnav-btn active" id="bn-tec-today" onclick="tecTab('today')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-width="2"/></svg>MIS TAREAS</button>
+  `;
   // Start on hoy and load
-  loadTecnicoHoy();loadTecnicoLista();
+  loadTecnicoToday();
 }
 function tecTab(t){
   document.querySelectorAll('#tec-view .tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tec-'+t).classList.add('active');
-  document.getElementById('bn-tec-'+t).classList.add('active');
+  var panel = document.getElementById('tec-'+t);
+  if(panel) panel.classList.add('active');
+  var btn = document.getElementById('bn-tec-'+t);
+  if(btn) btn.classList.add('active');
 }
 
 // \u2500\u2500 DAY NAVIGATION \u2500\u2500
