@@ -1,9 +1,11 @@
-// TIMEZONE HELPERS
+// TIMEZONE & HELPERS
 function localDateStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function localISOStr(){var d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();}
 function fmtLocalTime(s){if(!s)return'--:--';return new Date(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}
+function getMondayOf(dateStr){var d=new Date(dateStr+'T12:00:00');var dow=d.getDay();var off=dow===0?-6:1-dow;var m=new Date(d);m.setDate(d.getDate()+off);return m;}
 function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
 function pinClear(){pinBuffer='';updatePinDots();}
+
 
 const SUPABASE_URL='https://eaeuqcdcnkztttkfvbut.supabase.co';
 const SUPABASE_KEY='sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
@@ -29,6 +31,7 @@ async function init(){
   renderUserBtns();
   const saved=localStorage.getItem('avimex_user');
   if(saved){currentUser=JSON.parse(saved);showApp();}
+  setInterval(autoUpdateFixedActivities, 60000);
 }
 
 // \u2500\u2500 LOGIN \u2500\u2500
@@ -567,19 +570,20 @@ function setupTecnico(){
   document.getElementById('fab').classList.add('hidden');
   document.getElementById('tec-name-title').textContent='Hola, '+currentUser.name;
   document.getElementById('bottom-nav').innerHTML=`
-    <button class="bnav-btn active" id="bn-tec-today" onclick="tecTab('today')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-width="2"/></svg>MIS TAREAS</button>
-  `;
+    <button class="bnav-btn active" id="bn-tec-hoy" onclick="tecTab('hoy')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/></svg>Hoy</button>
+    <button class="bnav-btn" id="bn-tec-semana" onclick="tecTab('semana');loadTecSemana()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/></svg>Semana</button>
+    <button class="bnav-btn" id="bn-tec-lista" onclick="tecTab('lista')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Lista</button>`;
   // Start on hoy and load
-  loadTecnicoToday();
+  loadTecnicoHoy();loadTecnicoLista();
 }
 function tecTab(t){
   document.querySelectorAll('#tec-view .tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  var panel = document.getElementById('tec-'+t);
-  if(panel) panel.classList.add('active');
-  var btn = document.getElementById('bn-tec-'+t);
-  if(btn) btn.classList.add('active');
+  document.getElementById('tec-'+t).classList.add('active');
+  document.getElementById('bn-tec-'+t).classList.add('active');
 }
 
 // \u2500\u2500 DAY NAVIGATION \u2500\u2500
@@ -990,7 +994,13 @@ function showToast(msg,type=''){
   setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-window.addEventListener('load',function(){if(typeof supabase==='undefined'){return;}sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);init();});
+function localDateStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+function localISOStr(){var d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString();}
+
+function fmtLocalTime(s){if(!s)return'--:--';return new Date(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}
+
+function pinClear(){pinBuffer='';updatePinDots();}
 
 async function startDirectly(id) {
   if(!id || id === 'null') return;
@@ -1057,6 +1067,17 @@ async function supFinishActivity(id) {
   showToast('Actividad completada &#10003;','success');
   loadDashboard();
   if(document.getElementById('julian-hoy-acts')) loadJulianDay();
+}
+
+async function supCancelStart(id) {
+  if(!id || id === 'null') return;
+  const { error } = await sb.from('activities').update({
+    status: 'pendiente',
+    started_at: null
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  showToast('Inicio cancelado', 'success');
+  loadDashboard();
 }
 
 async function loadTecnicoToday() {
@@ -1187,6 +1208,65 @@ async function loadTecnicoToday() {
       } else {
         doneSection.style.display = 'none';
       }
+    }
+  }
+}
+
+async function finishActivity(id, e) {
+  if (e) e.stopPropagation();
+  // Require at least 1 photo before finishing
+  const { data: imgs } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  if(!imgs || imgs.length === 0) {
+    showToast('Sube al menos 1 foto antes de finalizar', 'error');
+    return;
+  }
+  const { data } = await sb.from('activities').select('started_at').eq('id',id).single();
+  const now = new Date();
+  const started = data?.started_at ? new Date(data.started_at) : now;
+  const mins = Math.max(0, Math.round((now - started) / 60000));
+  const { error } = await sb.from('activities').update({
+    status: 'completada',
+    finished_at: localISOStr(),
+    duration_minutes: mins
+  }).eq('id', id);
+  if(error) { showToast('Error', 'error'); return; }
+  if(timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  showToast('Actividad completada &#10003;', 'success');
+  loadTecnicoToday();
+}
+window.addEventListener('load', function() {
+  if(typeof supabase === 'undefined') {
+    var el = document.getElementById('login-error');
+    if(el) el.textContent = 'Error: recarga la pagina';
+    return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  init();
+});
+
+async function autoUpdateFixedActivities() {
+  const now = new Date();
+  const today = localDateStr();
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const { data: fixedActs } = await sb.from('activities')
+    .select('*').eq('is_fixed', true).eq('scheduled_date', today);
+  if(!fixedActs) return;
+  const seen = {};
+  const unique = [];
+  fixedActs.forEach(function(a) {
+    var key = a.title+'|'+a.assigned_to+'|'+(a.scheduled_start||'');
+    if(!seen[key]) { seen[key]=true; unique.push(a); }
+  });
+  for(const act of unique) {
+    const start = (act.scheduled_start||'').slice(0,5);
+    const end2 = (act.scheduled_end||'').slice(0,5);
+    if(!start||!end2) continue;
+    if(act.status==='pendiente' && timeStr>=start && timeStr<end2) {
+      await sb.from('activities').update({status:'en_progreso',started_at:localISOStr()}).eq('id',act.id);
+    } else if(act.status==='en_progreso' && timeStr>=end2) {
+      const started = act.started_at ? new Date(act.started_at) : now;
+      const mins = Math.max(0, Math.round((now-started)/60000));
+      await sb.from('activities').update({status:'completada',finished_at:localISOStr(),duration_minutes:mins}).eq('id',act.id);
     }
   }
 }
