@@ -142,7 +142,18 @@ async function loadDashboard() {
 function renderActCardSup(a) {
   const timeStr = a.scheduled_start ? `${a.scheduled_start.slice(0,5)}-${(a.scheduled_end||'').slice(0,5)}` : '';
   const dur = a.duration_minutes ? `${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m` : '';
-  const statusLabel = a.status==='completada' ? `<span style="color:var(--green);font-size:.72rem;font-family:DM Mono">&#10003; ${dur}</span>` : a.status==='en_progreso' ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="live-badge"><span class="live-dot"></span>En progreso</span><div style="font-size:.7rem;color:var(--muted2)">'+(a.started_at?'&#9654; '+fmtLocalTime(a.started_at):'')+' </div><button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.6rem;padding:3px 8px;border-radius:5px;cursor:pointer">&#10005; Cancelar</button></div>' : '';
+  const statusLabel = a.status==='completada'
+    ? '<span style="color:var(--green);font-size:.78rem;font-weight:600">&#10003; Completada</span>'
+    : a.status==='en_progreso'
+    ? '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
+      + '<span class="live-badge"><span class="live-dot"></span>En progreso</span>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+      + '<button class="btn btn-finish btn-sm" data-id="'+a.id+'" onclick="supFinishActivity(this.dataset.id)" style="color:#fff;font-size:.65rem;padding:4px 10px">&#10003; Finalizar</button>'
+      + '<button class="btn btn-sm" data-id="'+a.id+'" onclick="supCancelStart(this.dataset.id)" style="border:1px solid var(--red);color:var(--red);background:transparent;font-size:.65rem;padding:4px 10px">&#10005; Cancelar</button>'
+      + '</div></div>'
+    : a.status==='pendiente'
+    ? '<button class="btn btn-start btn-sm" data-id="'+a.id+'" onclick="supStartActivity(this.dataset.id)" style="color:#fff;font-size:.65rem;padding:4px 12px">&#9654; Iniciar</button>'
+    : '<span style="color:var(--muted);font-size:.72rem">'+a.status+'</span>';
   return `<div class="act-card" id="card-${a.id}">
     <div class="act-card-header" onclick="toggleCardSup('${a.id}')">
     <div class="act-status-dot dot-${a.status}"></div>
@@ -810,4 +821,40 @@ async function cancelStart(id) {
   if(error) { showToast('Error', 'error'); return; }
   showToast('Inicio cancelado', 'success');
   loadTecnicoToday();
+}
+
+async function supStartActivity(id) {
+  if(!id || id==='null') return;
+  const now = new Date();
+  const { error } = await sb.from('activities').update({
+    status: 'en_progreso',
+    started_at: localISOStr()
+  }).eq('id', id);
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  showToast('Actividad iniciada','success');
+  loadDashboard();
+  if(document.getElementById('julian-hoy-acts')) loadJulianDay();
+}
+
+async function supFinishActivity(id) {
+  if(!id || id==='null') return;
+  // Require at least 1 photo
+  const { data: imgs } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  if(!imgs || imgs.length===0){
+    showToast('Sube al menos 1 foto antes de finalizar','error');
+    return;
+  }
+  const { data } = await sb.from('activities').select('started_at').eq('id',id).single();
+  const now = new Date();
+  const started = data?.started_at ? new Date(data.started_at) : now;
+  const mins = Math.max(0, Math.round((now-started)/60000));
+  const { error } = await sb.from('activities').update({
+    status: 'completada',
+    finished_at: localISOStr(),
+    duration_minutes: mins
+  }).eq('id', id);
+  if(error){ showToast('Error','error'); return; }
+  showToast('Actividad completada &#10003;','success');
+  loadDashboard();
+  if(document.getElementById('julian-hoy-acts')) loadJulianDay();
 }

@@ -254,90 +254,64 @@ function filterDashboard(q){if(!window._dashActs)return;q=q.toLowerCase().trim()
 var MONTH_NAMES={'2026-05':'Mayo 2026','2026-06':'Junio 2026','2026-07':'Julio 2026','2026-08':'Agosto 2026','2026-09':'Septiembre 2026','2026-10':'Octubre 2026','2026-11':'Noviembre 2026','2026-12':'Diciembre 2026'};
 async function toggleNext(el){var s=el.nextElementSibling;s.style.display=s.style.display==='none'?'block':'none';}
 async function loadSupLista(){
-  var el=document.getElementById('sup-lista-content');
+  var el = document.getElementById('sup-lista-content');
   if(!el) return;
-  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  var r=await sb.from('activities').select('*').eq('is_fixed',false).order('scheduled_month').order('created_at');
-  var acts=r.data||[];
-  if(!acts.length){el.innerHTML='<div class="empty-state"><div class="empty-text">Sin actividades pendientes</div></div>';return;}
-  var pendientes=acts.filter(function(a){return a.status==='pendiente'||a.status==='en_progreso'||a.status==='revisar';});
-  var completadas=acts.filter(function(a){return a.status==='completada';}).sort(function(a,b){return new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at);});
-  var currentMonth=localISOStr().substring(0,7);
-  var preventivos=pendientes.filter(function(a){return a.type==='preventivo';});
-  var extras=pendientes.filter(function(a){return a.type!=='preventivo';});
-  var html='';
-  var unassigned=preventivos.filter(function(a){return !a.assigned_to&&a.scheduled_month===currentMonth;});
-  if(unassigned.length>0){
-    html+='<div style="background:rgba(185,28,28,.06);border:1.5px solid rgba(185,28,28,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;gap:10px">'
-    +'<span>!</span><div><div style="font-weight:700;font-size:.85rem;color:var(--red);margin-bottom:4px">'+unassigned.length+' mantenimiento(s) sin asignar este mes</div>'
-    +'<div style="font-size:.78rem;color:var(--muted2)">Asigna los preventivos de '+(MONTH_NAMES[currentMonth]||currentMonth)+'</div></div></div>';
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  var r = await sb.from('activities').select('*').eq('is_fixed', false).order('scheduled_date');
+  var acts = r.data || [];
+
+  // Separate pending/inprogress from completed
+  var active = acts.filter(function(a){ return a.status !== 'completada'; });
+  var done = acts.filter(function(a){ return a.status === 'completada'; });
+
+  var html = '';
+
+  // Active activities
+  if(active.length) {
+    html += "<div style='font-size:.62rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px'>PENDIENTES / EN PROGRESO</div>";
+    html += active.map(function(a){ return renderListCard(a); }).join('');
   }
-  if(extras.length>0){
-    html+='<div style="margin-bottom:16px"><div onclick="var s=this.nextElementSibling;s.style.display=s.style.display===\'none\'?\'block\':\'none\'" style="font-weight:700;color:var(--text);padding:8px 12px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--orange);border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between"><span>Actividades extra y pendientes</span><span style="font-size:.75rem;color:var(--muted)">'+extras.length+'</span></div>'
-    +'<div>'+extras.map(function(a){return renderListCard(a);}).join('')+'</div></div>';
+
+  // Completed by week
+  if(done.length) {
+    html += '<div style="height:1px;background:var(--border);margin:20px 0"></div>';
+    html += "<div style='font-size:.62rem;color:var(--green);letter-spacing:1px;margin-bottom:10px'>COMPLETADAS POR SEMANA</div>";
+
+    // Group by week
+    var byWeek = {};
+    done.forEach(function(a) {
+      var wid = a.week_id || 'sin-semana';
+      if(!byWeek[wid]) byWeek[wid] = [];
+      byWeek[wid].push(a);
+    });
+
+    // Sort weeks by start date
+    var sortedWeeks = allWeeks.slice().sort(function(a,b){ return b.start_date.localeCompare(a.start_date); });
+
+    sortedWeeks.forEach(function(week) {
+      var weekActs = byWeek[week.id];
+      if(!weekActs || !weekActs.length) return;
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">';
+      html += "<div style='font-size:.65rem;color:var(--accent);font-weight:700;margin-bottom:8px'>"+week.label+"</div>";
+      html += weekActs.map(function(a){ return renderListCardDone(a); }).join('');
+      html += '</div>';
+    });
+
+    // Activities without a week
+    if(byWeek['sin-semana']) {
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">';
+      html += "<div style='font-size:.65rem;color:var(--muted);margin-bottom:8px'>SIN SEMANA ASIGNADA</div>";
+      html += byWeek['sin-semana'].map(function(a){ return renderListCardDone(a); }).join('');
+      html += '</div>';
+    }
   }
-  var byMonth={};
-  preventivos.forEach(function(a){var k=a.scheduled_month||'sin-mes';if(!byMonth[k])byMonth[k]=[];byMonth[k].push(a);});
-  Object.keys(byMonth).sort().forEach(function(key){
-    var group=byMonth[key];
-    var isCurrent=key===currentMonth;
-    var label=MONTH_NAMES[key]||key;
-    var unass=group.filter(function(a){return !a.assigned_to;}).length;
-    html+='<div style="margin-bottom:16px"><div onclick="toggleNext(this)" style="font-weight:700;color:var(--text);padding:8px 12px;background:var(--card);border:1px solid '+(isCurrent?'rgba(234,88,12,.3)':'var(--border)')+';border-left:4px solid '+(isCurrent?'var(--orange)':'var(--border2)')+';border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between"><span>'+label+(isCurrent?' (mes actual)':'')+'</span><span style="font-size:.75rem;color:var(--muted)">'+(unass?unass+' sin asignar - ':'')+group.length+' total</span></div>'
-    +'<div style="'+(isCurrent?'':'display:none')+'">'+group.map(function(a){return renderListCard(a);}).join('')+'</div></div>';
-  });
-  if(completadas.length>0){
-    html+='<div style="height:1px;background:var(--border);margin:20px 0"></div>';
-    html+='<div onclick="toggleNext(this)" style="font-weight:700;color:var(--text);padding:8px 12px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between"><span>Completadas</span><span style="font-size:.75rem;color:var(--muted)">'+completadas.length+'</span></div>';
-    html+='<div style="display:none">'+completadas.map(function(a){return renderListCardDone(a);}).join('')+'</div>';
-  }
-  el.innerHTML=html;
+
+  if(!html) html = '<div class="empty-state"><div class="empty-text">Sin actividades pendientes.<br>Todas las actividades estan completadas.</div></div>';
+  el.innerHTML = html;
 }
-function renderListCardDone(a){
-  var who=allUsers.find(function(u){return u.id===a.assigned_to;});
-  var whoColor=who?(who.name==='Pedro'?'var(--pedro)':who.name==='Said'?'var(--said)':'var(--orange)'):'var(--muted2)';
-  var fin=a.finished_at?new Date(a.finished_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-  var dur=a.duration_minutes?Math.floor(a.duration_minutes/60)+'h '+a.duration_minutes%60+'m':'';
-  return '<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">'
-    +'<span style="color:var(--green);font-size:1rem;flex-shrink:0">&#10003;</span>'
-    +'<div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:500;margin-bottom:3px">'+a.title+'</div>'
-    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-    +'<span class="act-type-pill type-'+a.type+'">'+a.type+'</span>'
-    +'<span style="font-size:.6rem;color:'+whoColor+';font-weight:600">'+(who?who.name:'Sin asignar')+'</span>'
-    +(fin?'<span style="font-size:.6rem;color:var(--muted)">'+fin+'</span>':'')
-    +(dur?'<span style="font-size:.6rem;color:var(--green);font-weight:600">'+dur+'</span>':'')
-    +'</div></div>'
-    +'<div style="display:flex;gap:5px;flex-shrink:0">'
-    +'<button data-id="'+a.id+'" onclick="openReassign(this.dataset.id)" style="background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:.6rem;padding:5px 8px;cursor:pointer">Reasignar</button>'
-    +'<button data-id="'+a.id+'" onclick="openRehacer(this.dataset.id,event)" style="background:rgba(185,28,28,.08);border:1px solid rgba(185,28,28,.25);color:var(--red);font-size:.6rem;padding:5px 8px;border-radius:5px;cursor:pointer">Rehacer</button>'
-    +'</div></div>';
-}
-function renderListCard(a){
-  var who=allUsers.find(function(u){return u.id===a.assigned_to;});
-  var whoColor=who?(who.name==='Pedro'?'var(--pedro)':who.name==='Said'?'var(--said)':'var(--orange)'):'var(--red)';
-  var dateStr=a.scheduled_date?new Date(a.scheduled_date+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'Sin fecha';
-  return '<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">'
-    +'<div style="flex:1"><div style="font-size:.82rem;font-weight:500;margin-bottom:4px">'+a.title+'</div>'
-    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-    +'<span class="act-type-pill type-'+a.type+'">'+a.type+'</span>'
-    +'<span style="font-size:.6rem;color:'+whoColor+';font-weight:600">'+(who?who.name:'Sin asignar')+'</span>'
-    +'<span style="font-size:.6rem;color:var(--muted)">'+dateStr+'</span>'
-    +'</div></div>'
-    +'<div style="display:flex;gap:5px;flex-shrink:0">'
-    +'<button data-id="'+a.id+'" onclick="openReassign(this.dataset.id)" style="background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:.6rem;padding:5px 8px;cursor:pointer">Reasignar</button>'
-    +'<button data-id="'+a.id+'" onclick="openEditAct(this.dataset.id)" style="background:var(--orange);color:#fff;border:none;border-radius:5px;font-size:.6rem;padding:5px 8px;cursor:pointer">Editar</button>'
-    +'</div></div>';
-}
-var selectedDayJulian=new Date();
-function julianSub(tab){
-  document.getElementById('julian-hoy').style.display=tab==='hoy'?'block':'none';
-  document.getElementById('julian-lista').style.display=tab==='lista'?'block':'none';
-  var h=document.getElementById('jst-hoy'),l=document.getElementById('jst-lista');
-  h.style.background=tab==='hoy'?'var(--orange)':'transparent';h.style.color=tab==='hoy'?'#fff':'var(--muted2)';h.style.borderColor=tab==='hoy'?'var(--orange)':'var(--border2)';
-  l.style.background=tab==='lista'?'var(--orange)':'transparent';l.style.color=tab==='lista'?'#fff':'var(--muted2)';l.style.borderColor=tab==='lista'?'var(--orange)':'var(--border2)';
-  if(tab==='lista') loadJulianList();
-}
-function cambiarDiaJulian(delta){selectedDayJulian=new Date(selectedDayJulian);selectedDayJulian.setDate(selectedDayJulian.getDate()+delta);loadJulianDay();}
+
+
 async function loadJulianDay(){
   loadSupWeekOverview();
   var julian=allUsers.find(function(u){return u.role==='supervisor';});if(!julian)return;
