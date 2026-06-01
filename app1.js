@@ -124,10 +124,18 @@ function switchTab(tab){
   if(tab==='semana') loadSupSemana();
 }
 function populateWeekSelectors(){
+  // Always sync to current week first
+  const todayStr = localDateStr();
+  const cw = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
+  if(cw) selectedWeekId = cw.id;
   // Newest first (allWeeks already sorted desc)
-  ['week-selector','week-selector-stats','week-selector-semana-sup'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.innerHTML=allWeeks.map(w=>`<div class="week-chip ${w.id===selectedWeekId?'active':''}" onclick="selectWeekSup('${w.id}',this,'${id}')">${w.label}</div>`).join('');
+  ['week-selector','week-selector-stats','week-selector-semana-sup'].forEach(function(id){
+    const el=document.getElementById(id); if(!el) return;
+    el.innerHTML=allWeeks.map(function(w){
+      return '<div class="week-chip '+(w.id===selectedWeekId?'active':'')+'" data-wid="'+w.id+'" data-sel="'+id+'" onclick="selectWeekSup(this.dataset.wid,this,this.dataset.sel)">'+w.label+'</div>';
+    }).join('');
+    // Scroll active into view
+    setTimeout(function(){ var a=el.querySelector('.week-chip.active'); if(a) a.scrollIntoView({inline:'nearest',behavior:'auto'}); }, 50);
   });
 }
 function selectWeekSup(id,el,selectorId){
@@ -150,11 +158,19 @@ function populateUserSelects(){
 
 // \u2500\u2500 DASHBOARD \u2500\u2500
 async function loadDashboard(){
-
-  if(!selectedWeekId)return;
-  const week=allWeeks.find(w=>w.id===selectedWeekId);
-  const {data:acts}=await sb.from('activities').select('*').eq('week_id',selectedWeekId);
-  if(!acts)return;
+  // Find current week by date, fallback to selectedWeekId
+  const todayStr = localDateStr();
+  const currentWeek = allWeeks.find(w => todayStr >= w.start_date && todayStr <= w.end_date);
+  if(currentWeek && currentWeek.id !== selectedWeekId) {
+    selectedWeekId = currentWeek.id;
+  }
+  if(!selectedWeekId) { console.warn('No week found for', todayStr); return; }
+  const week = allWeeks.find(w => w.id === selectedWeekId);
+  if(!week) { console.warn('Week not found:', selectedWeekId); return; }
+  
+  const {data:acts, error:actsErr} = await sb.from('activities').select('*').eq('week_id', selectedWeekId);
+  if(actsErr) { console.error('loadDashboard query error:', actsErr.message); return; }
+  if(!acts) return;
 
   // Check unassigned preventivos for current month
   const currentMonth=new Date().toISOString().substring(0,7);
