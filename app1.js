@@ -924,3 +924,20 @@ function pinEnter(){
   if(!user||user.pin!==pinBuffer){document.getElementById('login-error').textContent='PIN incorrecto';pinBuffer='';updatePinDots();return;}
   currentUser=user;localStorage.setItem('avimex_user',JSON.stringify(user));showApp();
 }
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+}
+
+function pinDelete() {
+  pinDel();
+}
+
+function pinClear() {
+  pinBuffer = '';
+  updatePinDots();
+}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function logout(){localStorage.removeItem('avimex_user');currentUser=null;selectedUserId=null;pinBuffer='';updatePinDots();document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('login-error').textContent='';showScreen('login-screen');}
