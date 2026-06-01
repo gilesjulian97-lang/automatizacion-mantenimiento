@@ -991,8 +991,6 @@ function showToast(msg,type=''){
   setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-init();
-
 window.addEventListener('load',function(){if(typeof supabase==='undefined'){return;}sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);init();});
 
 async function startDirectly(id) {

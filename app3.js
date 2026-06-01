@@ -323,14 +323,7 @@ function showToast(msg, type='') {
   setTimeout(()=>t.classList.remove('show'), 3000);
 }
 // START
-window.addEventListener('load', function() {
-  if(typeof supabase === 'undefined') {
-    var el = document.getElementById('login-error');
-    if(el) el.textContent = 'Error: recarga la pagina';
-    return;
-  }
-  init();
-});
+
 async function openRehacer(id,e){
   if(e) e.stopPropagation();
   var r=await sb.from('activities').select('*').eq('id',id).single();
