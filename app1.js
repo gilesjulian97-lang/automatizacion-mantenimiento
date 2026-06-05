@@ -182,11 +182,12 @@ async function loadDashboard(){
   document.getElementById('stat-pend').textContent = nonFixed.filter(function(a){ return a.status==='pendiente'||a.status==='revisar'; }).length;
 
   const pedro=allUsers.find(u=>u.name==='Pedro'),said=allUsers.find(u=>u.name==='Said'),julian=allUsers.find(u=>u.name==='Julian');
-  [{user:pedro,bar:'bar-pedro',pct:'pct-pedro'},{user:said,bar:'bar-said',pct:'pct-said'},{user:julian,bar:'bar-julian',pct:'pct-julian'}].forEach(({user,bar,pct})=>{
-    if(!user)return;
-    const ua=nonFixed.filter(a=>a.assigned_to===user.id);
-    const p=ua.length?Math.round(ua.filter(a=>a.status==='completada').length/ua.length*100):0;
-    document.getElementById(pct).textContent=p+'%';document.getElementById(bar).style.width=p+'%';
+  [{user:pedro,bar:'bar-pedro',pct:'pct-pedro'},{user:said,bar:'bar-said',pct:'pct-said'}].forEach(function(o){
+    if(!o.user)return;
+    var ua=nonFixed.filter(function(a){return a.assigned_to===o.user.id;});
+    var p=ua.length?Math.round(ua.filter(function(a){return a.status==='completada';}).length/ua.length*100):0;
+    var pctEl=document.getElementById(o.pct); if(pctEl) pctEl.textContent=p+'%';
+    var barEl=document.getElementById(o.bar); if(barEl) barEl.style.width=p+'%';
   });
 
   // Weekly table
@@ -307,7 +308,7 @@ async function loadSupSemana(){
   if(el) el.innerHTML=allWeeks.map(w=>`<div class="week-chip ${w.id===selectedWeekId?'active':''}" onclick="selectWeekSup('${w.id}',this,'week-selector-semana-sup')">${w.label}</div>`).join('');
   if(!week)return;
   const {data:acts}=await sb.from('activities').select('*').eq('week_id',selectedWeekId).eq('is_fixed',false);
-  buildWeeklyTable(acts||[],week,'sup-semana-table',true);
+  buildWeeklyTable(acts||[],week,'semana-table',true);
 }
 
 // \u2500\u2500 SUPERVISOR LISTA \u2500\u2500
@@ -1282,5 +1283,15 @@ async function autoUpdateFixedActivities() {
       const mins = Math.max(0, Math.round((now-started)/60000));
       await sb.from('activities').update({status:'completada',finished_at:localISOStr(),duration_minutes:mins}).eq('id',act.id);
     }
+  }
+}
+
+function toggleCardSup(id) {
+  var card = document.getElementById('card-'+id);
+  if(!card) return;
+  var isOpen = card.classList.toggle('open');
+  if(isOpen) {
+    loadImages(id);
+    loadComments(id, 'cmt-'+id);
   }
 }
