@@ -174,11 +174,12 @@ async function loadDashboard(){
   const r = await sb.from('activities').select('*').eq('week_id', selectedWeekId).eq('is_fixed', false);
   if(r.error || !r.data) return;
   const acts = r.data;
+  const nonFixed = acts.filter(function(a){ return !a.is_fixed; });
 
-    document.getElementById('stat-total').textContent=nonFixed.length;
-  document.getElementById('stat-done').textContent=nonFixed.filter(a=>a.status==='completada').length;
-  document.getElementById('stat-prog').textContent=nonFixed.filter(a=>a.status==='en_progreso').length;
-  document.getElementById('stat-pend').textContent=nonFixed.filter(a=>a.status==='pendiente'||a.status==='revisar').length;
+  document.getElementById('stat-total').textContent = nonFixed.length;
+  document.getElementById('stat-done').textContent = nonFixed.filter(function(a){ return a.status==='completada'; }).length;
+  document.getElementById('stat-prog').textContent = nonFixed.filter(function(a){ return a.status==='en_progreso'; }).length;
+  document.getElementById('stat-pend').textContent = nonFixed.filter(function(a){ return a.status==='pendiente'||a.status==='revisar'; }).length;
 
   const pedro=allUsers.find(u=>u.name==='Pedro'),said=allUsers.find(u=>u.name==='Said'),julian=allUsers.find(u=>u.name==='Julian');
   [{user:pedro,bar:'bar-pedro',pct:'pct-pedro'},{user:said,bar:'bar-said',pct:'pct-said'},{user:julian,bar:'bar-julian',pct:'pct-julian'}].forEach(({user,bar,pct})=>{
@@ -208,7 +209,7 @@ async function loadDashboard(){
     if(a.scheduled_date){const d=new Date(a.scheduled_date+'T12:00:00');fixedGroups[key].days.add(d.getDay());}
   });
   const whoColors={Pedro:'var(--pedro)',Said:'var(--said)',Julian:'var(--julian)'};
-  document.getElementById('fixed-summary').innerHTML=Object.values(fixedGroups).length===0
+  var fixedEl=document.getElementById('fixed-summary'); if(fixedEl) fixedEl.innerHTML=Object.values(fixedGroups).length===0
     ?'<div style="color:var(--muted);font-size:.75rem">Sin actividades fijas</div>'
     :Object.values(fixedGroups).map(g=>{
       const daysStr=[...g.days].filter(d=>d!==0).sort().map(d=>dayNames[d]).join(', ');
@@ -222,7 +223,7 @@ async function loadDashboard(){
 
   // Completed log
   const completed=acts.filter(a=>a.status==='completada'&&!a.is_fixed).sort((a,b)=>new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at));
-  document.getElementById('completed-log').innerHTML=completed.length===0
+  var compEl=document.getElementById('completed-log'); if(compEl) compEl.innerHTML=completed.length===0
     ?'<div style="color:var(--muted);font-size:.75rem">Sin actividades completadas esta semana</div>'
     :completed.map(a=>{
       const who=allUsers.find(u=>u.id===a.assigned_to)?.name||'Sin asignar';
@@ -257,8 +258,6 @@ function buildWeeklyTable(acts, week, containerId, showAllUsers=false){
     if(dow!==0)dateByDow[dow]=d.toISOString().split('T')[0];
   }
   const today=localDateStr();
-  const nonFixed=acts.filter(a=>!a.is_fixed);
-
   // For tecnico: only show their own. For supervisor: show by person
   let rows=[];
   if(showAllUsers){
