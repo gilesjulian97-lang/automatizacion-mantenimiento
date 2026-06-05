@@ -313,7 +313,6 @@ async function loadSupLista(){
 
 
 async function loadJulianDay(){
-  loadSupWeekOverview();
   var julian=allUsers.find(function(u){return u.role==='supervisor';});if(!julian)return;
   var dayNames=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
   var monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];

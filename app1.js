@@ -129,7 +129,7 @@ function populateWeekSelectors(){
   const cw = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
   if(cw) selectedWeekId = cw.id;
   // Newest first (allWeeks already sorted desc)
-  ['week-selector','week-selector-stats','week-selector-semana-sup'].forEach(function(id){
+  ['week-selector','week-selector-stats','week-selector-semana'].forEach(function(id){
     const el=document.getElementById(id); if(!el) return;
     el.innerHTML=allWeeks.map(function(w){
       return '<div class="week-chip '+(w.id===selectedWeekId?'active':'')+'" data-wid="'+w.id+'" data-sel="'+id+'" onclick="selectWeekSup(this.dataset.wid,this,this.dataset.sel)">'+w.label+'</div>';
@@ -142,7 +142,7 @@ function selectWeekSup(id,el,selectorId){
   selectedWeekId=id;
   document.querySelectorAll(`#${selectorId} .week-chip`).forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
-  if(selectorId==='week-selector-semana-sup')loadSupSemana();
+  if(selectorId==='week-selector-semana')loadSupSemana();
   else loadDashboard();
 }
 function populateUserSelects(){
@@ -288,8 +288,8 @@ function buildWeeklyTable(acts, week, containerId, showAllUsers=false){
 // \u2500\u2500 SUPERVISOR SEMANA \u2500\u250
 async function loadSupSemana(){
   const week=allWeeks.find(w=>w.id===selectedWeekId);
-  const el=document.getElementById('week-selector-semana-sup');
-  if(el) el.innerHTML=allWeeks.map(w=>`<div class="week-chip ${w.id===selectedWeekId?'active':''}" onclick="selectWeekSup('${w.id}',this,'week-selector-semana-sup')">${w.label}</div>`).join('');
+  const el=document.getElementById('week-selector-semana');
+  if(el) el.innerHTML=allWeeks.map(w=>`<div class="week-chip ${w.id===selectedWeekId?'active':''}" onclick="selectWeekSup('${w.id}',this,'week-selector-semana')">${w.label}</div>`).join('');
   if(!week)return;
   const {data:acts}=await sb.from('activities').select('*').eq('week_id',selectedWeekId).eq('is_fixed',false);
   buildWeeklyTable(acts||[],week,'semana-table',true);
