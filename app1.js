@@ -199,46 +199,30 @@ async function loadDashboard(){
     ?`<div class="empty-state"><div class="empty-icon">\ud83d\udca4</div><div class="empty-text">Sin actividades en progreso</div></div>`
     :live.map(a=>renderActCardSup(a)).join('');
 
-  // Fixed summary
-  const dayNames=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
-  const {data:allFixed}=await sb.from('activities').select('*').eq('is_fixed',true);
-  const fixedGroups={};
-  (allFixed||[]).forEach(a=>{
-    const who=allUsers.find(u=>u.id===a.assigned_to)?.name||'?';
-    const key=who+'||'+a.title;
-    if(!fixedGroups[key])fixedGroups[key]={who,title:a.title,time:a.scheduled_start?a.scheduled_start.slice(0,5)+'\u2013'+(a.scheduled_end||'').slice(0,5):'',days:new Set()};
-    if(a.scheduled_date){const d=new Date(a.scheduled_date+'T12:00:00');fixedGroups[key].days.add(d.getDay());}
-  });
-  const whoColors={Pedro:'var(--pedro)',Said:'var(--said)',Julian:'var(--julian)'};
-  var fixedEl=document.getElementById('fixed-summary'); if(fixedEl) fixedEl.innerHTML=Object.values(fixedGroups).length===0
-    ?'<div style="color:var(--muted);font-size:.75rem">Sin actividades fijas</div>'
-    :Object.values(fixedGroups).map(g=>{
-      const daysStr=[...g.days].filter(d=>d!==0).sort().map(d=>dayNames[d]).join(', ');
-      const color=whoColors[g.who]||'var(--muted2)';
-      return `<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;box-shadow:var(--shadow)">
-        <span style="font-family:'Bebas Neue';font-size:.9rem;letter-spacing:1px;color:${color};min-width:56px">${g.who}</span>
-        <div style="flex:1"><div style="font-size:.82rem;font-weight:500">${g.title}</div>
-        <div style="font-family:'DM Mono';font-size:.6rem;color:var(--muted);margin-top:2px">${g.time?g.time+' \u00b7 ':''}${daysStr}</div></div>
-      </div>`;
-    }).join('');
+  // Fixed summary - simplified
+  var fixedEl2 = document.getElementById('fixed-summary');
+  if(fixedEl2) fixedEl2.innerHTML = '';
 
-  // Completed log
-  const completed=acts.filter(a=>a.status==='completada'&&!a.is_fixed).sort((a,b)=>new Date(b.finished_at||b.created_at)-new Date(a.finished_at||a.created_at));
-  var compEl=document.getElementById('completed-log'); if(compEl) compEl.innerHTML=completed.length===0
-    ?'<div style="color:var(--muted);font-size:.75rem">Sin actividades completadas esta semana</div>'
-    :completed.map(a=>{
-      const who=allUsers.find(u=>u.id===a.assigned_to)?.name||'Sin asignar';
-      const whoColor=who==='Pedro'?'var(--pedro)':who==='Said'?'var(--said)':who==='Julian'?'var(--julian)':'var(--muted2)';
-      const finDate=a.finished_at?new Date(a.finished_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-      const dur=a.duration_minutes?`${Math.floor(a.duration_minutes/60)}h ${a.duration_minutes%60}m`:'';
-      return `<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:#fff;border:1.5px solid rgba(26,158,92,.2);border-radius:8px;margin-bottom:6px;box-shadow:var(--shadow)">
-        <span style="color:var(--green);font-size:1.1rem;flex-shrink:0;font-weight:700">\u2713</span>
-        <div style="flex:1"><div style="font-size:.82rem;font-weight:500">${a.title}</div>
-        <div style="font-family:'DM Mono';font-size:.6rem;color:var(--muted);margin-top:2px"><span style="color:${whoColor};font-weight:600">${who}</span> \u00b7 ${finDate}${dur?' \u00b7 '+dur:''}</div></div>
-      </div>`;
-    }).join('');
+  // Completed log - simplified  
+  var completed = acts.filter(function(a){ return a.status==='completada'; });
+  var compEl2 = document.getElementById('completed-log');
+  if(compEl2) {
+    if(!completed.length) {
+      compEl2.innerHTML = '<div style="color:var(--muted);font-size:.75rem">Sin actividades completadas esta semana</div>';
+    } else {
+      compEl2.innerHTML = completed.map(function(a){
+        var who = allUsers.find(function(u){ return u.id===a.assigned_to; });
+        var whoName = who ? who.name : 'Sin asignar';
+        return '<div style="padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">'
+          + '<span style="color:var(--green);font-weight:700">&#10003;</span> '
+          + '<strong>' + (a.title||'') + '</strong>'
+          + '<span style="color:var(--muted);font-size:.75rem;margin-left:8px">' + whoName + '</span>'
+          + '</div>';
+      }).join('');
+    }
+  }
 
-  const pending=nonFixed.filter(a=>a.status!=='completada');
+    const pending=nonFixed.filter(a=>a.status!=='completada');
   document.getElementById('acts-pedro').innerHTML=pending.filter(a=>a.assigned_to===pedro?.id).map(a=>renderActCardSup(a)).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades pendientes</div>';
   document.getElementById('acts-said').innerHTML=pending.filter(a=>a.assigned_to===said?.id).map(a=>renderActCardSup(a)).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades pendientes</div>';
   document.getElementById('acts-julian').innerHTML=pending.filter(a=>a.assigned_to===julian?.id).map(a=>renderActCardSup(a)).join('')||'<div style="color:var(--muted);font-size:.75rem;padding:6px 0">Sin actividades pendientes</div>';
@@ -460,7 +444,8 @@ async function loadStats(){
   const {data:acts}=await sb.from('activities').select('*').eq('week_id',selectedWeekId);
   const cards=document.getElementById('person-stats-cards');
   const tl=document.getElementById('activity-time-list');
-  cards.innerHTML='';tl.innerHTML='';
+  if(cards) cards.innerHTML='';
+  if(tl) tl.innerHTML='';
   if(!acts||acts.length===0){tl.innerHTML='<div class="empty-state"><div class="empty-text">Sin datos</div></div>';return;}
   const pedro=allUsers.find(u=>u.name==='Pedro'),said=allUsers.find(u=>u.name==='Said');
   [pedro,said].forEach(person=>{

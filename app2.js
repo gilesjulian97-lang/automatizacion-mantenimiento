@@ -362,3 +362,26 @@ async function supCancelStart(id) {
   showToast('Inicio cancelado', 'success');
   loadDashboard();
 }
+
+function renderListCard(a) {
+  var who = allUsers.find(function(u){ return u.id===a.assigned_to; });
+  var whoName = who ? who.name : 'Sin asignar';
+  var statusLabel = a.status==='en_progreso' ? '<span class="live-badge"><span class="live-dot"></span>En progreso</span>'
+    : a.status==='pendiente' ? '<span style="color:var(--muted);font-size:.72rem">Pendiente</span>'
+    : '<span style="color:var(--green);font-size:.72rem">&#10003; Completada</span>';
+  return '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+    + '<div><div style="font-size:.85rem;font-weight:600">' + (a.title||'') + '</div>'
+    + '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' + whoName + '</div></div>'
+    + statusLabel + '</div></div>';
+}
+
+function renderListCardDone(a) {
+  var who = allUsers.find(function(u){ return u.id===a.assigned_to; });
+  var whoName = who ? who.name : 'Sin asignar';
+  return '<div style="background:var(--card);border:1px solid rgba(21,128,61,.2);border-radius:10px;padding:10px 12px;margin-bottom:6px">'
+    + '<span style="color:var(--green);font-weight:700">&#10003;</span> '
+    + '<strong style="font-size:.82rem">' + (a.title||'') + '</strong>'
+    + '<span style="color:var(--muted);font-size:.72rem;margin-left:8px">' + whoName + '</span>'
+    + '</div>';
+}
