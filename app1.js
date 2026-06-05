@@ -158,47 +158,24 @@ function populateUserSelects(){
 
 // \u2500\u2500 DASHBOARD \u2500\u2500
 async function loadDashboard(){
-  // Debug: show what's happening
-  var dbgEl = document.getElementById('stat-total');
-  if(dbgEl) dbgEl.textContent = '...';
-  
+  // Always use current week
   const todayStr = localDateStr();
-  const currentWeek = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
-  if(currentWeek) selectedWeekId = currentWeek.id;
+  const cw = allWeeks.find(function(w){ return todayStr >= w.start_date && todayStr <= w.end_date; });
+  if(cw) selectedWeekId = cw.id;
+  if(!selectedWeekId) return;
   
-  if(!selectedWeekId) {
-    if(dbgEl) dbgEl.textContent = 'SEM?';
-    return;
-  }
   const week = allWeeks.find(function(w){ return w.id === selectedWeekId; });
-  if(!week) {
-    if(dbgEl) dbgEl.textContent = 'W?';
-    return;
-  }
-  if(dbgEl) dbgEl.textContent = week.label.substring(0,6);
-  
-  const r = await sb.from('activities').select('*').eq('week_id', selectedWeekId);
-  if(r.error) {
-    if(dbgEl) dbgEl.textContent = 'ERR';
-    return;
-  }
-  const acts = r.data || [];
-  if(dbgEl) dbgEl.textContent = acts.length;
+  if(!week) return;
 
-  // Check unassigned preventivos for current month
-  const currentMonth=new Date().toISOString().substring(0,7);
-  const {data:unassignedPrev}=await sb.from('activities').select('id').eq('type','preventivo').eq('scheduled_month',currentMonth).is('assigned_to',null);
-  const alertEl=document.getElementById('preventivo-alert');
-  if(unassignedPrev&&unassignedPrev.length>0){
-    alertEl.style.display='block';
-    document.getElementById('alert-title').textContent=`${unassignedPrev.length} mantenimiento(s) sin asignar este mes`;
-    document.getElementById('alert-text').textContent=`Hay mantenimientos preventivos de ${new Date().toLocaleDateString('es-MX',{month:'long',year:'numeric'})} pendientes de asignar.`;
-  }else{
-    alertEl.style.display='none';
-  }
+  // Update week label
+  var lbl = document.getElementById('dashboard-week-label');
+  if(lbl) lbl.textContent = week.label;
 
-  const nonFixed=acts.filter(a=>!a.is_fixed);
-  document.getElementById('stat-total').textContent=nonFixed.length;
+  const r = await sb.from('activities').select('*').eq('week_id', selectedWeekId).eq('is_fixed', false);
+  if(r.error || !r.data) return;
+  const acts = r.data;
+
+    document.getElementById('stat-total').textContent=nonFixed.length;
   document.getElementById('stat-done').textContent=nonFixed.filter(a=>a.status==='completada').length;
   document.getElementById('stat-prog').textContent=nonFixed.filter(a=>a.status==='en_progreso').length;
   document.getElementById('stat-pend').textContent=nonFixed.filter(a=>a.status==='pendiente'||a.status==='revisar').length;
