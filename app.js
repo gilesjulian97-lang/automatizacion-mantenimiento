@@ -230,6 +230,16 @@ async function loadTecHoy() {
     actsEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">${isToday?'Sin actividades para hoy':'Sin actividades este día'}</div></div>`;
     return;
   }
+  // Load photo counts for in-progress activities
+  const inProgress = acts.filter(a => a.status === 'en_progreso' || a.status === 'completada');
+  if(inProgress.length) {
+    const { data: photos } = await sb.from('activity_images').select('activity_id').in('activity_id', inProgress.map(a=>a.id));
+    if(photos) {
+      const counts = {};
+      photos.forEach(p => { counts[p.activity_id] = (counts[p.activity_id]||0)+1; });
+      acts.forEach(a => { a._photoCount = counts[a.id]||0; });
+    }
+  }
   actsEl.innerHTML = acts.map(a => renderTecCard(a, isPast)).join('');
 }
 
@@ -245,16 +255,17 @@ function renderTecCard(a, isPast) {
     statusBadge = `<span class="badge badge-progress"><span class="live-dot"></span> En progreso</span>`;
     actions = `
       <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem">
-        📷 Fotos
+        ${(a._photoCount||0)>0?'📷 Fotos ('+(a._photoCount||0)+')':'📷 Subir fotos'}
         <input type="file" class="img-file-input" accept="image/*" multiple onchange="tecUploadPhoto('${a.id}',this)">
       </label>
       <button class="btn btn-success btn-sm" onclick="tecFinish('${a.id}')">✓ Finalizar</button>
       <button class="btn btn-danger btn-sm" onclick="tecCancel('${a.id}')">✕</button>`;
   } else if(a.status === 'completada') {
     statusBadge = `<span class="badge badge-done">✓ Completada</span>`;
+    const dpc = a._photoCount||0;
     actions = `
-      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem">
-        📷 Más fotos
+      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem;${dpc>0?'background:var(--green-light);color:var(--green);border-color:var(--green)':''}">
+        ${dpc>0?'📷 '+dpc+' foto(s)':'📷 Subir fotos'}
         <input type="file" class="img-file-input" accept="image/*" multiple onchange="tecUploadPhoto('${a.id}',this)">
       </label>`;
   }
