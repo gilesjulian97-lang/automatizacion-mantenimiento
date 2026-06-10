@@ -5,7 +5,7 @@
 
 const SUPABASE_URL = 'https://eaeuqcdcnkztttkfvbut.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
-const APPS_SCRIPT  = 'https://script.google.com/macros/s/AKfycbwURq9doqIIJhR-CYGoefgYQqSmXPPm5UBBud8U3rwe2DaUjaToGWTLLdI_oTyxnhbJ/exec';
+const APPS_SCRIPT  = 'https://script.google.com/macros/s/AKfycbw19JeItTb9PyEiMeyNn7jWRapmpOtjrfzWJaLvwU3KJ3DFmSKA5NSb5MKH1F7ckKYR/exec';
 
 // ── STATE ──
 let sb = null;
@@ -297,32 +297,45 @@ async function tecCancel(id) {
   loadTecHoy();
 }
 
-async function tecUploadPhoto(actId, input) {
+async function uploadPhotos(actId, input, onDone) {
   if(!input.files.length) return;
   showToast('Subiendo fotos...');
-  // Get activity info for folder path
   const { data: act } = await sb.from('activities').select('title,scheduled_date,week_id').eq('id',actId).single();
   const week = allWeeks.find(w => w.id === act?.week_id);
   const d = new Date((act?.scheduled_date||today())+'T12:00:00');
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const folderPath = `AVI-MEX/${months[d.getMonth()]} ${d.getFullYear()}/${week?.label||'Sin semana'}/${act?.title||'Actividad'}`;
-
+  const folderPath = 'AVI-MEX/' + months[d.getMonth()] + ' ' + d.getFullYear() + '/' + (week?.label||'Sin semana') + '/' + (act?.title||'Actividad');
   const files = Array.from(input.files);
+  let uploaded = 0;
   await Promise.allSettled(files.map(async (file) => {
     const reader = new FileReader();
-    const b64 = await new Promise(res => { reader.onload = e => res(e.target.result.split(',')[1]); reader.readAsDataURL(file); });
-    const form = new FormData();
-    form.append('file', b64);
-    form.append('filename', `${Date.now()}_${file.name}`);
-    form.append('folder', folderPath);
-    const res = await fetch(APPS_SCRIPT, {method:'POST', body:form, redirect:'follow'});
-    const data = await res.json();
-    if(data.url) {
-      await sb.from('activity_images').insert({activity_id:actId, url:data.url, uploaded_by:currentUser.id});
+    const dataUrl = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
+    const b64 = dataUrl.split(',')[1];
+    const mimeType = file.type || 'image/jpeg';
+    const payload = { file: b64, filename: Date.now()+'_'+file.name, folder: folderPath, mimeType: mimeType };
+    try {
+      const res = await fetch(APPS_SCRIPT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if(data.url) {
+        await sb.from('activity_images').insert({activity_id: actId, url: data.url, uploaded_by: currentUser.id});
+        uploaded++;
+      }
+    } catch(err) {
+      console.error('Upload error:', err);
     }
   }));
-  showToast('Fotos subidas ✓','success');
-  loadTecHoy();
+  if(uploaded > 0) showToast(uploaded + ' foto(s) subida(s) ✓','success');
+  else showToast('Error al subir fotos','error');
+  if(onDone) onDone();
+}
+
+async function tecUploadPhoto(actId, input) {
+  await uploadPhotos(actId, input, () => loadTecHoy());
 }
 
 async function loadTecPendientes() {
@@ -592,25 +605,7 @@ async function supCancel(id) {
 }
 
 async function supUploadPhoto(actId, input) {
-  if(!input.files.length) return;
-  showToast('Subiendo...');
-  const { data: act } = await sb.from('activities').select('title,scheduled_date,week_id').eq('id',actId).single();
-  const week = allWeeks.find(w=>w.id===act?.week_id);
-  const d = new Date((act?.scheduled_date||today())+'T12:00:00');
-  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const folderPath = `AVI-MEX/${months[d.getMonth()]} ${d.getFullYear()}/${week?.label||'Sin semana'}/${act?.title||'Actividad'}`;
-  const files = Array.from(input.files);
-  await Promise.allSettled(files.map(async file => {
-    const reader = new FileReader();
-    const b64 = await new Promise(res => {reader.onload=e=>res(e.target.result.split(',')[1]);reader.readAsDataURL(file);});
-    const form = new FormData();
-    form.append('file',b64); form.append('filename',Date.now()+'_'+file.name); form.append('folder',folderPath);
-    const res = await fetch(APPS_SCRIPT,{method:'POST',body:form,redirect:'follow'});
-    const data = await res.json();
-    if(data.url) await sb.from('activity_images').insert({activity_id:actId,url:data.url,uploaded_by:currentUser.id});
-  }));
-  showToast('Fotos subidas ✓','success');
-  loadSupDashboard();
+  await uploadPhotos(actId, input, () => loadSupDashboard());
 }
 
 // ── SEMANA ──
