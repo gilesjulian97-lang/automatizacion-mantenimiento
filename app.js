@@ -281,7 +281,8 @@ async function tecStart(id) {
 }
 
 async function tecFinish(id) {
-  const { data: imgs } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  const { data: imgs, error: imgErr } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  if(imgErr) { showToast('Error verificando fotos: '+imgErr.message,'error'); return; }
   if(!imgs || !imgs.length) { showToast('Sube al menos 1 foto antes de finalizar','error'); return; }
   const { data } = await sb.from('activities').select('started_at').eq('id',id).single();
   const now = new Date();
@@ -332,8 +333,19 @@ async function uploadPhotos(actId, input, onDone) {
       console.error('Upload error:', err);
     }
   }));
-  if(uploaded > 0) showToast(uploaded + ' foto(s) subida(s) ✓','success');
-  else showToast('Error al subir fotos','error');
+  if(uploaded > 0) {
+    showToast(uploaded + ' foto(s) subida(s) ✓','success');
+    // Reload images in card
+    const imgGrid = document.getElementById('imgs-'+actId);
+    if(imgGrid) {
+      const { data: imgs } = await sb.from('activity_images').select('*').eq('activity_id', actId);
+      if(imgs && imgs.length) {
+        imgGrid.innerHTML = imgs.map(i => `<img src="${i.url}" class="img-thumb">`).join('');
+      }
+    }
+  } else {
+    showToast('Error al subir fotos','error');
+  }
   if(onDone) onDone();
 }
 
