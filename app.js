@@ -312,18 +312,21 @@ async function uploadPhotos(actId, input, onDone) {
     const dataUrl = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
     const b64 = dataUrl.split(',')[1];
     const mimeType = file.type || 'image/jpeg';
-    const payload = { file: b64, filename: Date.now()+'_'+file.name, folder: folderPath, mimeType: mimeType };
     try {
-      const res = await fetch(APPS_SCRIPT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        redirect: 'follow'
-      });
-      const data = await res.json();
+      const form = new FormData();
+      form.append('file', b64);
+      form.append('filename', Date.now()+'_'+file.name);
+      form.append('folder', folderPath);
+      form.append('mimeType', mimeType);
+      const res = await fetch(APPS_SCRIPT, {method:'POST', body:form, redirect:'follow'});
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch(e) { data = {}; }
       if(data.url) {
         await sb.from('activity_images').insert({activity_id: actId, url: data.url, uploaded_by: currentUser.id});
         uploaded++;
+      } else {
+        console.error('No URL in response:', text);
       }
     } catch(err) {
       console.error('Upload error:', err);
