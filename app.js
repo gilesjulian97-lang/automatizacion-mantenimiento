@@ -750,41 +750,115 @@ async function loadWeekTable(weekId) {
 
 // ── LISTA ──
 async function loadSupLista() {
-  const el_lista = el('sup-lista-content');
-  el_lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const listEl = el('sup-lista-content');
+  listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   
   const { data: acts } = await sb.from('activities').select('*').eq('is_fixed',false).order('scheduled_date');
   const all = acts || [];
-  const todayStr = today();
-  
-  const active = all.filter(a => a.status !== 'completada');
-  const done = all.filter(a => a.status === 'completada');
-  
-  let html = '';
-  
-  if(active.length) {
-    html += `<div class="sec-label">Pendientes / En progreso (${active.length})</div>`;
-    html += active.map(a => renderSupCard(a)).join('');
-  } else {
-    html += '<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Sin actividades pendientes</div></div>';
-  }
 
-  // Done by week
-  if(done.length) {
-    html += `<div style="height:1px;background:var(--border);margin:16px 0"></div>
-      <div class="sec-label">Completadas por semana</div>`;
-    const byWeek = {};
-    done.forEach(a => { const k=a.week_id||'sin'; if(!byWeek[k]) byWeek[k]=[]; byWeek[k].push(a); });
-    allWeeks.slice().reverse().forEach(w => {
-      if(!byWeek[w.id]?.length) return;
-      html += `<div class="month-section" style="margin-bottom:8px">
-        <button class="month-toggle" onclick="toggleMonth(this)">${w.label} (${byWeek[w.id].length}) <span class="arrow">▾</span></button>
-        <div class="month-content">${byWeek[w.id].map(a => renderSupCard(a)).join('')}</div>
-      </div>`;
+  const inProgress = all.filter(a => a.status === 'en_progreso');
+  const pending    = all.filter(a => a.status === 'pendiente');
+  const done       = all.filter(a => a.status === 'completada');
+  const unassigned = pending.filter(a => !a.assigned_to);
+  const assigned   = pending.filter(a => !!a.assigned_to);
+
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function groupByMonthWeek(list) {
+    // Group by month → week
+    const byMonth = {};
+    list.forEach(a => {
+      if(!a.scheduled_date) { 
+        if(!byMonth['Sin fecha']) byMonth['Sin fecha'] = {'Sin semana':[]};
+        byMonth['Sin fecha']['Sin semana'].push(a);
+        return;
+      }
+      const d = new Date(a.scheduled_date+'T12:00:00');
+      const mKey = monthNames[d.getMonth()]+' '+d.getFullYear();
+      const week = allWeeks.find(w => a.scheduled_date >= w.start_date && a.scheduled_date <= w.end_date);
+      const wKey = week ? week.label : 'Sin semana';
+      if(!byMonth[mKey]) byMonth[mKey] = {};
+      if(!byMonth[mKey][wKey]) byMonth[mKey][wKey] = [];
+      byMonth[mKey][wKey].push(a);
     });
+    return byMonth;
   }
 
-  el_lista.innerHTML = html;
+  function renderMonthWeekGroups(grouped, emptyMsg) {
+    const keys = Object.keys(grouped);
+    if(!keys.length) return '<div class="empty" style="padding:16px"><div class="empty-text">'+emptyMsg+'</div></div>';
+    let html = '';
+    keys.forEach(month => {
+      const weeks = grouped[month];
+      const total = Object.values(weeks).flat().length;
+      html += `<div class="month-section">
+        <button class="month-toggle" onclick="toggleMonth(this)">
+          ${month} <span style="color:var(--text-muted);font-weight:400">(${total})</span>
+          <span class="arrow">▾</span>
+        </button>
+        <div class="month-content">`;
+      Object.keys(weeks).forEach(wLabel => {
+        const wActs = weeks[wLabel];
+        html += `<div style="margin:6px 0 2px;padding:4px 8px;background:var(--blue-light);border-radius:6px;font-size:.72rem;font-weight:700;color:var(--blue)">${wLabel} (${wActs.length})</div>`;
+        html += wActs.map(a => renderSupCard(a)).join('');
+      });
+      html += '</div></div>';
+    });
+    return html;
+  }
+
+  let html = '';
+
+  // EN PROGRESO
+  html += `<div class="sec-label" style="display:flex;justify-content:space-between">
+    <span>EN PROGRESO</span><span style="color:var(--blue)">${inProgress.length}</span>
+  </div>`;
+  if(!inProgress.length) {
+    html += '<div class="empty" style="padding:12px"><div class="empty-text">Sin actividades en progreso</div></div>';
+  } else {
+    html += inProgress.map(a => renderSupCard(a)).join('');
+  }
+
+  html += '<div style="height:1px;background:var(--border);margin:16px 0"></div>';
+
+  // PENDIENTES ASIGNADAS — por mes/semana
+  html += `<div class="month-section">
+    <button class="month-toggle open" onclick="toggleMonth(this)">
+      PENDIENTES ASIGNADAS <span style="color:var(--text-muted);font-weight:400">(${assigned.length})</span>
+      <span class="arrow">▾</span>
+    </button>
+    <div class="month-content open">
+      ${renderMonthWeekGroups(groupByMonthWeek(assigned), 'Sin actividades asignadas pendientes')}
+    </div>
+  </div>`;
+
+  html += '<div style="height:1px;background:var(--border);margin:8px 0"></div>';
+
+  // SIN ASIGNAR — colapsado por defecto
+  html += `<div class="month-section">
+    <button class="month-toggle" onclick="toggleMonth(this)">
+      SIN ASIGNAR <span style="color:var(--text-muted);font-weight:400">(${unassigned.length})</span>
+      <span class="arrow">▾</span>
+    </button>
+    <div class="month-content">
+      ${renderMonthWeekGroups(groupByMonthWeek(unassigned), 'Sin actividades sin asignar')}
+    </div>
+  </div>`;
+
+  html += '<div style="height:1px;background:var(--border);margin:8px 0"></div>';
+
+  // COMPLETADAS — por mes/semana, colapsado
+  html += `<div class="month-section">
+    <button class="month-toggle" onclick="toggleMonth(this)">
+      COMPLETADAS <span style="color:var(--green);font-weight:400">(${done.length})</span>
+      <span class="arrow">▾</span>
+    </button>
+    <div class="month-content">
+      ${renderMonthWeekGroups(groupByMonthWeek(done), 'Sin actividades completadas')}
+    </div>
+  </div>`;
+
+  listEl.innerHTML = html;
 }
 
 // ── STATS ──
