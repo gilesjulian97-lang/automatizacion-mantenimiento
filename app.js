@@ -533,6 +533,17 @@ async function loadSupDashboardData() {
     el('bar-'+name).style.width = p+'%';
   });
 
+  // Load photo counts for in-progress and completed
+  const needPhotos = acts.filter(a => a.status === 'en_progreso' || a.status === 'completada');
+  if(needPhotos.length) {
+    const { data: photos } = await sb.from('activity_images').select('activity_id').in('activity_id', needPhotos.map(a=>a.id));
+    if(photos) {
+      const counts = {};
+      photos.forEach(p => { counts[p.activity_id] = (counts[p.activity_id]||0)+1; });
+      acts.forEach(a => { a._photoCount = counts[a.id]||0; });
+    }
+  }
+
   // Live activities
   const live = acts.filter(a=>a.status==='en_progreso');
   el('sup-live').innerHTML = !live.length
@@ -591,9 +602,10 @@ function renderSupCard(a) {
       <button class="btn btn-outline btn-sm" onclick="openEdit('${a.id}')">✏️ Editar</button>`;
   } else if(a.status==='en_progreso') {
     statusBadge = `<span class="badge badge-progress"><span class="live-dot"></span> En progreso</span>`;
+    const spc = a._photoCount||0;
     actions = `
-      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem">
-        📷 Fotos
+      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem;${spc>0?'background:var(--green-light);color:var(--green);border-color:var(--green)':''}">
+        ${spc>0?'📷 Fotos ('+spc+')':'📷 Subir fotos'}
         <input type="file" class="img-file-input" accept="image/*" multiple onchange="supUploadPhoto('${a.id}',this)">
       </label>
       <button class="btn btn-success btn-sm" onclick="supFinish('${a.id}')">✓ Finalizar</button>
@@ -601,9 +613,10 @@ function renderSupCard(a) {
       <button class="btn btn-outline btn-sm" onclick="openEdit('${a.id}')">✏️</button>`;
   } else {
     statusBadge = `<span class="badge badge-done">✓ Completada</span>`;
+    const dpc = a._photoCount||0;
     actions = `
-      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem">
-        📷 Más fotos
+      <label class="upload-btn" style="margin:0;padding:7px 12px;font-size:.75rem;${dpc>0?'background:var(--green-light);color:var(--green);border-color:var(--green)':''}">
+        ${dpc>0?'📷 '+dpc+' foto(s)':'📷 Subir fotos'}
         <input type="file" class="img-file-input" accept="image/*" multiple onchange="supUploadPhoto('${a.id}',this)">
       </label>
       <button class="btn btn-outline btn-sm" onclick="openEdit('${a.id}')">✏️ Editar</button>`;
