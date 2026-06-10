@@ -502,6 +502,19 @@ function supNavDay(d) {
 }
 function supGoToday() { selectedDaySup = new Date(); loadSupDayActs(); }
 
+
+async function loadPhotoCounts(acts) {
+  const relevant = acts.filter(a => a.status === 'en_progreso' || a.status === 'completada');
+  if(!relevant.length) return acts;
+  const { data: photos } = await sb.from('activity_images').select('activity_id')
+    .in('activity_id', relevant.map(a => a.id));
+  if(photos) {
+    const counts = {};
+    photos.forEach(p => { counts[p.activity_id] = (counts[p.activity_id]||0)+1; });
+    acts.forEach(a => { a._photoCount = counts[a.id]||0; });
+  }
+  return acts;
+}
 async function loadSupDashboard() {
   const cw = currentWeek();
   if(cw) selectedWeekId = cw.id;
@@ -533,16 +546,7 @@ async function loadSupDashboardData() {
     el('bar-'+name).style.width = p+'%';
   });
 
-  // Load photo counts for in-progress and completed
-  const needPhotos = acts.filter(a => a.status === 'en_progreso' || a.status === 'completada');
-  if(needPhotos.length) {
-    const { data: photos } = await sb.from('activity_images').select('activity_id').in('activity_id', needPhotos.map(a=>a.id));
-    if(photos) {
-      const counts = {};
-      photos.forEach(p => { counts[p.activity_id] = (counts[p.activity_id]||0)+1; });
-      acts.forEach(a => { a._photoCount = counts[a.id]||0; });
-    }
-  }
+  await loadPhotoCounts(acts);
 
   // Live activities
   const live = acts.filter(a=>a.status==='en_progreso');
@@ -583,6 +587,7 @@ async function loadSupDayActs() {
   // Regular
   const { data: acts } = await sb.from('activities').select('*')
     .eq('assigned_to', supUser.id).eq('scheduled_date', viewDate).eq('is_fixed', false);
+  if(acts) await loadPhotoCounts(acts);
   const actsEl = el('sup-day-acts');
   if(!acts || !acts.length) {
     actsEl.innerHTML = `<div class="empty" style="padding:16px"><div class="empty-text">Sin actividades este día</div></div>`;
@@ -764,6 +769,7 @@ async function loadSupLista() {
   
   const { data: acts } = await sb.from('activities').select('*').eq('is_fixed',false).order('scheduled_date');
   const all = acts || [];
+  await loadPhotoCounts(all);
 
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const now = new Date();
