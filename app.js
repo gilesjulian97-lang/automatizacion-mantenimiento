@@ -753,12 +753,20 @@ async function loadSupLista() {
   const listEl = el('sup-lista-content');
   listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   
-  const { data: acts } = await sb.from('activities').select('*').eq('is_fixed',false).order('scheduled_date');
-  const all = acts || [];
+  const todayStr = today();
+  // Get all activities: pending/in-progress (all dates) + completed (last 90 days)
+  const [{ data: activeFetch }, { data: doneFetch }] = await Promise.all([
+    sb.from('activities').select('*').eq('is_fixed',false)
+      .in('status',['pendiente','en_progreso']).order('scheduled_date'),
+    sb.from('activities').select('*').eq('is_fixed',false)
+      .eq('status','completada').order('scheduled_date', {ascending:false}).limit(200)
+  ]);
 
-  const inProgress = all.filter(a => a.status === 'en_progreso');
-  const pending    = all.filter(a => a.status === 'pendiente');
-  const done       = all.filter(a => a.status === 'completada');
+  const active = activeFetch || [];
+  const done   = doneFetch || [];
+
+  const inProgress = active.filter(a => a.status === 'en_progreso');
+  const pending    = active.filter(a => a.status === 'pendiente');
   const unassigned = pending.filter(a => !a.assigned_to);
   const assigned   = pending.filter(a => !!a.assigned_to);
 
@@ -784,6 +792,9 @@ async function loadSupLista() {
     return byMonth;
   }
 
+  const todayDate = new Date();
+  const currentMonthKey = monthNames[todayDate.getMonth()]+' '+todayDate.getFullYear();
+
   function renderMonthWeekGroups(grouped, emptyMsg) {
     const keys = Object.keys(grouped);
     if(!keys.length) return '<div class="empty" style="padding:16px"><div class="empty-text">'+emptyMsg+'</div></div>';
@@ -791,12 +802,13 @@ async function loadSupLista() {
     keys.forEach(month => {
       const weeks = grouped[month];
       const total = Object.values(weeks).flat().length;
+      const isCurrent = month === currentMonthKey;
       html += `<div class="month-section">
-        <button class="month-toggle" onclick="toggleMonth(this)">
+        <button class="month-toggle ${isCurrent?'open':''}" onclick="toggleMonth(this)">
           ${month} <span style="color:var(--text-muted);font-weight:400">(${total})</span>
           <span class="arrow">▾</span>
         </button>
-        <div class="month-content">`;
+        <div class="month-content ${isCurrent?'open':''}">`;
       Object.keys(weeks).forEach(wLabel => {
         const wActs = weeks[wLabel];
         html += `<div style="margin:6px 0 2px;padding:4px 8px;background:var(--blue-light);border-radius:6px;font-size:.72rem;font-weight:700;color:var(--blue)">${wLabel} (${wActs.length})</div>`;
@@ -827,7 +839,7 @@ async function loadSupLista() {
       PENDIENTES ASIGNADAS <span style="color:var(--text-muted);font-weight:400">(${assigned.length})</span>
       <span class="arrow">▾</span>
     </button>
-    <div class="month-content open">
+    <div class="month-content open" style="padding-top:4px">
       ${renderMonthWeekGroups(groupByMonthWeek(assigned), 'Sin actividades asignadas pendientes')}
     </div>
   </div>`;
