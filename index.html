@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>AVI-MEX Mantenimiento</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg: #f4f6f9;
+  --white: #ffffff;
+  --blue: #1a6fd4;
+  --blue-dark: #1558a8;
+  --blue-light: #e8f0fd;
+  --orange: #f26419;
+  --orange-light: #fff0e8;
+  --gray: #6b7280;
+  --gray-light: #e5e7eb;
+  --gray-bg: #f4f6f9;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --red: #dc2626;
+  --red-light: #fee2e2;
+  --yellow: #d97706;
+  --yellow-light: #fef3c7;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
+button { cursor: pointer; font-family: inherit; font-size: inherit; border: none; background: none; }
+input, select, textarea { font-family: inherit; font-size: inherit; }
+
+/* ── SCREENS ── */
+.screen { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* ── LOGIN ── */
+#login-screen { background: var(--white); align-items: center; justify-content: center; padding: 24px; }
+.login-logo { text-align: center; margin-bottom: 32px; }
+.login-logo h1 { font-size: 2rem; font-weight: 800; letter-spacing: 4px; color: var(--blue); }
+.login-logo p { color: var(--text-muted); font-size: .85rem; margin-top: 4px; }
+.user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 360px; margin-bottom: 28px; }
+.user-btn { background: var(--white); border: 2px solid var(--border); border-radius: var(--radius); padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all .15s; }
+.user-btn.selected { border-color: var(--blue); background: var(--blue-light); }
+.user-btn:active { transform: scale(.96); }
+.avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: var(--white); }
+.av-julian { background: var(--blue); }
+.av-pedro { background: var(--orange); }
+.av-said { background: var(--green); }
+.user-btn span { font-size: .82rem; font-weight: 600; color: var(--text); }
+.user-btn .role-tag { font-size: .62rem; color: var(--blue); font-weight: 700; letter-spacing: .5px; }
+.pin-section { width: 100%; max-width: 300px; }
+.pin-dots { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: var(--white); transition: all .15s; }
+.pin-dot.filled { background: var(--blue); border-color: var(--blue); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pin-key { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; font-size: 1.2rem; font-weight: 600; color: var(--text); transition: all .1s; }
+.pin-key:active { background: var(--blue-light); border-color: var(--blue); transform: scale(.94); }
+.pin-key.del { font-size: .9rem; color: var(--text-muted); }
+.login-error { color: var(--red); font-size: .8rem; text-align: center; margin-top: 12px; min-height: 20px; }
+
+/* ── TOPBAR ── */
+.topbar { background: var(--blue); color: var(--white); padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-brand { font-size: 1rem; font-weight: 800; letter-spacing: 3px; }
+.topbar-sep { flex: 1; }
+.topbar-title { font-size: .8rem; opacity: .85; }
+.topbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.topbar-name { font-size: .82rem; font-weight: 600; }
+.btn-logout { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: var(--white); border-radius: 6px; padding: 5px 10px; font-size: .75rem; font-weight: 600; }
+
+/* ── APP LAYOUT ── */
+#app-screen { background: var(--bg); }
+.app-body { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.bottom-nav { background: var(--white); border-top: 1.5px solid var(--border); display: flex; padding: 6px 0 8px; flex-shrink: 0; }
+.bnav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px; color: var(--text-muted); font-size: .62rem; font-weight: 600; letter-spacing: .3px; transition: color .15s; }
+.bnav-btn svg { width: 22px; height: 22px; }
+.bnav-btn.active { color: var(--blue); }
+.bnav-btn.active svg { stroke: var(--blue); }
+
+/* ── VIEWS ── */
+.view { display: none; height: 100%; }
+.view.active { display: block; }
+.tab-panel { display: none; padding: 16px; }
+.tab-panel.active { display: block; }
+
+/* ── CARDS ── */
+.card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.card-title { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.card-meta { font-size: .75rem; color: var(--text-muted); }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ── BUTTONS ── */
+.btn { border-radius: var(--radius-sm); padding: 9px 16px; font-weight: 600; font-size: .82rem; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; }
+.btn:active { transform: scale(.96); }
+.btn-primary { background: var(--blue); color: var(--white); }
+.btn-primary:active { background: var(--blue-dark); }
+.btn-orange { background: var(--orange); color: var(--white); }
+.btn-success { background: var(--green); color: var(--white); }
+.btn-danger { background: transparent; border: 1.5px solid var(--red); color: var(--red); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.btn-sm { padding: 6px 12px; font-size: .75rem; }
+.btn-block { width: 100%; justify-content: center; }
+
+/* ── STATUS BADGES ── */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: .7rem; font-weight: 700; letter-spacing: .3px; }
+.badge-pending { background: var(--yellow-light); color: var(--yellow); }
+.badge-progress { background: var(--blue-light); color: var(--blue); }
+.badge-done { background: var(--green-light); color: var(--green); }
+.badge-alert { background: var(--red-light); color: var(--red); }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); display: inline-block; animation: pulse 1.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── DAY NAV ── */
+.day-nav { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.day-nav-btn { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; font-size: 1rem; }
+.day-nav-btn:active { background: var(--blue-light); border-color: var(--blue); }
+.day-nav-center { flex: 1; text-align: center; }
+.day-nav-label { font-size: .78rem; font-weight: 800; letter-spacing: 1px; color: var(--blue); }
+.day-nav-date { font-size: .72rem; color: var(--text-muted); margin-top: 1px; }
+.btn-today { background: var(--orange-light); color: var(--orange); border: none; border-radius: 6px; padding: 4px 8px; font-size: .68rem; font-weight: 700; margin-top: 3px; }
+
+/* ── SECTION HEADERS ── */
+.sec-label { font-size: .65rem; font-weight: 700; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; margin-top: 4px; }
+.sec-title { font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text); margin-bottom: 4px; }
+
+/* ── STATS GRID ── */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.stat-label { font-size: .65rem; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-value.blue { color: var(--blue); }
+.stat-value.green { color: var(--green); }
+.stat-value.orange { color: var(--orange); }
+
+/* ── PROGRESS ── */
+.progress-row { margin-bottom: 10px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.progress-name { font-size: .82rem; font-weight: 600; }
+.progress-pct { font-size: .78rem; font-weight: 700; color: var(--orange); }
+.progress-bar-bg { height: 6px; background: var(--gray-light); border-radius: 3px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 3px; background: var(--blue); transition: width .4s; }
+
+/* ── WEEK TABLE ── */
+.week-selector-list { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 14px; }
+.week-chips { display: flex; gap: 8px; padding-bottom: 4px; }
+.week-chip { white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--white); font-size: .75rem; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+.week-chip.active { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.month-header { font-size: .75rem; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; padding: 8px 0 4px; }
+.week-table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+.week-table th { background: var(--blue); color: var(--white); padding: 7px 4px; text-align: center; font-weight: 700; font-size: .68rem; }
+.week-table td { border: 1px solid var(--border); padding: 4px; vertical-align: top; min-width: 40px; background: var(--white); }
+.week-table td.today { background: var(--blue-light); }
+.wt-act { background: var(--blue-light); border-left: 3px solid var(--blue); padding: 3px 4px; border-radius: 3px; margin-bottom: 2px; font-size: .65rem; cursor: pointer; }
+.wt-act.done { background: var(--green-light); border-color: var(--green); }
+.wt-act.prog { background: #fff3e0; border-color: var(--orange); }
+
+/* ── FIXED ACT ROW ── */
+.fixed-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; }
+.fixed-time { font-size: .72rem; font-weight: 700; color: var(--blue); min-width: 80px; font-family: monospace; }
+.fixed-name { flex: 1; font-size: .82rem; font-weight: 600; }
+.fixed-status { font-size: .68rem; font-weight: 700; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: .72rem; font-weight: 700; letter-spacing: .5px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; display: block; }
+.form-input { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--white); font-size: .88rem; color: var(--text); }
+.form-input:focus { outline: none; border-color: var(--blue); }
+select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+/* ── IMAGE UPLOAD ── */
+.img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.img-thumb { aspect-ratio: 1; border-radius: 6px; object-fit: cover; width: 100%; }
+.img-file-input { display: none; }
+.upload-btn { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--blue-light); color: var(--blue); border: 1.5px dashed var(--blue); border-radius: var(--radius-sm); padding: 9px 14px; font-size: .8rem; font-weight: 600; width: 100%; margin-top: 8px; }
+
+/* ── MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-sheet { background: var(--white); border-radius: 18px 18px 0 0; padding: 20px 16px 32px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 1rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; color: var(--text); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--white); padding: 10px 18px; border-radius: 20px; font-size: .82rem; font-weight: 600; opacity: 0; transition: all .25s; z-index: 200; white-space: nowrap; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--green); }
+.toast.error { background: var(--red); }
+
+/* ── EMPTY STATE ── */
+.empty { text-align: center; padding: 32px 16px; color: var(--text-muted); }
+.empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.empty-text { font-size: .85rem; line-height: 1.5; }
+
+/* ── LOADING ── */
+.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 32px; color: var(--text-muted); font-size: .82rem; }
+.spinner { width: 20px; height: 20px; border: 2.5px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ALERT BANNER ── */
+.alert { padding: 10px 12px; border-radius: var(--radius-sm); font-size: .78rem; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
+.alert-warning { background: var(--yellow-light); color: #92400e; border: 1px solid #fcd34d; }
+.alert-info { background: var(--blue-light); color: var(--blue-dark); border: 1px solid #93c5fd; }
+
+/* ── COLLAPSIBLE MONTH ── */
+.month-section { margin-bottom: 4px; }
+.month-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-weight: 700; font-size: .82rem; color: var(--text); }
+.month-toggle .arrow { transition: transform .2s; font-size: .75rem; color: var(--text-muted); }
+.month-toggle.open .arrow { transform: rotate(180deg); }
+.month-content { display: none; }
+.month-content.open { display: block; padding-top: 6px; }
+
+/* ── EDIT OVERLAY ── */
+#edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 150; align-items: flex-end; }
+#edit-overlay.open { display: flex; }
+.edit-sheet { background: var(--white); border-radius: 18px 18px 0 0; padding: 20px 16px 32px; width: 100%; max-height: 92vh; overflow-y: auto; }
+
+/* ── SUP TABS ── */
+#sup-view .tab-panel { padding: 16px; }
+
+/* ── TEC VIEW ── */
+#tec-view .tab-panel { padding: 16px; }
+.tec-subtabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tec-subtab { flex: 1; padding: 9px; text-align: center; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: .8rem; font-weight: 700; color: var(--text-muted); background: var(--white); }
+.tec-subtab.active { background: var(--blue); color: var(--white); border-color: var(--blue); }
+
+/* ── CHART ── */
+.chart-bar-wrap { margin: 8px 0; }
+.chart-label { font-size: .72rem; color: var(--text-muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+.chart-bar-bg { height: 8px; background: var(--gray-light); border-radius: 4px; overflow: hidden; }
+.chart-bar-fill { height: 100%; border-radius: 4px; background: var(--blue); }
+.chart-bar-fill.orange { background: var(--orange); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 380px) {
+  .stats-grid { gap: 8px; }
+  .stat-value { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen" class="screen active">
+  <div class="login-logo">
+    <h1>AVI-MEX</h1>
+    <p>Sistema de Mantenimiento</p>
+  </div>
+  <div id="user-btns" class="user-grid"></div>
+  <div class="pin-section">
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinClear()">✕</button>
+    </div>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app-screen" class="screen">
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-brand">AVI-MEX</span>
+    <span class="topbar-title">Mantenimiento</span>
+    <div class="topbar-sep"></div>
+    <div class="topbar-avatar" id="topbar-avatar"></div>
+    <span class="topbar-name" id="topbar-name"></span>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+
+  <!-- Body -->
+  <div class="app-body" id="app-body">
+
+    <!-- ── TECNICO VIEW ── -->
+    <div id="tec-view" class="view">
+      <div id="tec-hoy" class="tab-panel active">
+        <!-- Day navigation -->
+        <div class="day-nav">
+          <button class="day-nav-btn" onclick="tecNavDay(-1)">&#8249;</button>
+          <div class="day-nav-center">
+            <div class="day-nav-label" id="tec-day-label">HOY</div>
+            <div class="day-nav-date" id="tec-day-date"></div>
+            <button class="btn-today" id="tec-btn-today" onclick="tecGoToday()" style="display:none">Ir a hoy</button>
+          </div>
+          <button class="day-nav-btn" onclick="tecNavDay(1)">&#8250;</button>
+        </div>
+        <!-- Fixed activities -->
+        <div class="sec-label">Actividades fijas</div>
+        <div id="tec-fixed"></div>
+        <!-- Regular activities -->
+        <div class="sec-label" style="margin-top:14px">Mis actividades</div>
+        <div id="tec-acts"></div>
+      </div>
+
+      <div id="tec-pendientes" class="tab-panel">
+        <div class="sec-title" style="margin-bottom:12px">Pendientes</div>
+        <div id="tec-pend-list"></div>
+        <div id="tec-done-list"></div>
+        <div id="tec-future-list"></div>
+      </div>
+    </div>
+
+    <!-- ── SUPERVISOR VIEW ── -->
+    <div id="sup-view" class="view">
+      <div id="sup-dashboard" class="tab-panel active">
+        <!-- Week selector -->
+        <div class="sec-title">Dashboard</div>
+        <div class="sec-label" id="sup-week-label">Semana actual</div>
+        <div class="week-selector-list"><div class="week-chips" id="sup-week-chips"></div></div>
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value blue" id="dash-total">—</div></div>
+          <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value green" id="dash-done">—</div></div>
+          <div class="stat-card"><div class="stat-label">En progreso</div><div class="stat-value orange" id="dash-prog">—</div></div>
+          <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" id="dash-pend">—</div></div>
+        </div>
+        <!-- Progress bars -->
+        <div class="progress-row"><div class="progress-header"><span class="progress-name">Pedro</span><span class="progress-pct" id="pct-pedro">0%</span></div><div class="progress-bar-bg"><div class="progress-bar" id="bar-pedro" style="width:0"></div></div></div>
+        <div class="progress-row"><div class="progress-header"><span class="progress-name">Said</span><span class="progress-pct" id="pct-said">0%</span></div><div class="progress-bar-bg"><div class="progress-bar" id="bar-said" style="width:0"></div></div></div>
+        <!-- Day activities -->
+        <div style="height:1px;background:var(--border);margin:16px 0"></div>
+        <div class="sec-label">Mis actividades</div>
+        <div class="day-nav">
+          <button class="day-nav-btn" onclick="supNavDay(-1)">&#8249;</button>
+          <div class="day-nav-center">
+            <div class="day-nav-label" id="sup-day-label">HOY</div>
+            <div class="day-nav-date" id="sup-day-date"></div>
+            <button class="btn-today" id="sup-btn-today" onclick="supGoToday()" style="display:none">Ir a hoy</button>
+          </div>
+          <button class="day-nav-btn" onclick="supNavDay(1)">&#8250;</button>
+        </div>
+        <div id="sup-day-fixed"></div>
+        <div id="sup-day-acts"></div>
+        <!-- Live -->
+        <div style="height:1px;background:var(--border);margin:16px 0"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span class="sec-label" style="margin:0">En tiempo real</span>
+          <span class="badge badge-progress"><span class="live-dot"></span> LIVE</span>
+        </div>
+        <div id="sup-live"></div>
+      </div>
+
+      <div id="sup-semana" class="tab-panel">
+        <div class="sec-title" style="margin-bottom:12px">Semana</div>
+        <div id="sup-semana-months"></div>
+        <div id="sup-semana-table" style="overflow-x:auto;margin-top:12px"></div>
+      </div>
+
+      <div id="sup-lista" class="tab-panel">
+        <div class="sec-title" style="margin-bottom:12px">Lista</div>
+        <div id="sup-lista-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <div id="sup-agregar" class="tab-panel">
+        <div class="sec-title" style="margin-bottom:16px">Nueva Actividad</div>
+        <div class="form-group">
+          <label class="form-label">Título</label>
+          <input class="form-input" id="add-title" placeholder="Descripción de la actividad">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="add-type">
+            <option value="preventivo">Preventivo</option>
+            <option value="correctivo">Correctivo</option>
+            <option value="revision">Revisión</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asignar a</label>
+          <select class="form-input" id="add-assigned">
+            <option value="">— Sin asignar —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha programada</label>
+          <input class="form-input" id="add-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Semana</label>
+          <select class="form-input" id="add-week"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Inicio automático</label>
+          <select class="form-input" id="add-autostart">
+            <option value="no">No — inicio manual</option>
+            <option value="yes">Sí — iniciar automáticamente por horario</option>
+          </select>
+        </div>
+        <div id="add-time-fields" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Hora inicio</label>
+            <input class="form-input" id="add-start" type="time">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hora fin</label>
+            <input class="form-input" id="add-end" type="time">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción / Instrucciones</label>
+          <textarea class="form-input" id="add-desc" rows="3" placeholder="Instrucciones opcionales..."></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addActivity()">Agregar actividad</button>
+      </div>
+
+      <div id="sup-stats" class="tab-panel">
+        <div class="sec-title" style="margin-bottom:4px">Estadísticas</div>
+        <div class="sec-label" style="margin-bottom:14px">Avance y comparativas</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-primary btn-sm" onclick="downloadReport('week')">↓ Semanal</button>
+          <button class="btn btn-primary btn-sm" onclick="downloadReport('month')">↓ Mensual</button>
+          <button class="btn btn-primary btn-sm" onclick="downloadReport('year')">↓ Anual</button>
+        </div>
+        <div id="stats-content"><div class="loading"><div class="spinner"></div>Generando...</div></div>
+      </div>
+    </div>
+
+  </div><!-- end app-body -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<!-- ── EDIT OVERLAY ── -->
+<div id="edit-overlay">
+  <div class="edit-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="edit-title-label">Editar actividad</div>
+    <div id="edit-content"></div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js?v=1"></script>
+</body>
+</html>
