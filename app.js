@@ -5,7 +5,7 @@
 
 const SUPABASE_URL = 'https://eaeuqcdcnkztttkfvbut.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_f89Uz7LwwTcjqpdKKzXlYg_HuNsTtC3';
-const APPS_SCRIPT  = 'https://script.google.com/macros/s/AKfycbw19JeItTb9PyEiMeyNn7jWRapmpOtjrfzWJaLvwU3KJ3DFmSKA5NSb5MKH1F7ckKYR/exec';
+const APPS_SCRIPT  = 'https://script.google.com/macros/s/AKfycbz-sfnuB48hihTyy1UvJJO43oQd9J84NzyjFJ5c9MKKYjOWX_l6y6ZXu-RX00-v1J_A/exec';
 
 // ── STATE ──
 let sb = null;
