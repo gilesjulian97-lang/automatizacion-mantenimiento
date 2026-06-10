@@ -760,15 +760,18 @@ async function loadSupLista() {
   const now = new Date();
   const currentMonthKey = monthNames[now.getMonth()]+' '+now.getFullYear();
 
-  // Group all activities by month
+  // Group by month - use scheduled_date first, then scheduled_month, then 'Sin mes'
   const byMonth = {};
   all.forEach(a => {
     let mKey;
     if(a.scheduled_date) {
       const d = new Date(a.scheduled_date+'T12:00:00');
       mKey = monthNames[d.getMonth()]+' '+d.getFullYear();
+    } else if(a.scheduled_month) {
+      // scheduled_month is 1-12
+      mKey = monthNames[a.scheduled_month-1]+' 2026';
     } else {
-      mKey = 'Sin fecha';
+      mKey = 'Sin mes asignado';
     }
     if(!byMonth[mKey]) byMonth[mKey] = [];
     byMonth[mKey].push(a);
@@ -785,49 +788,42 @@ async function loadSupLista() {
 
   sortedMonths.forEach(month => {
     const mActs = byMonth[month];
-    const unassigned  = mActs.filter(a => !a.assigned_to && a.status === 'pendiente');
-    const assigned    = mActs.filter(a => !!a.assigned_to && a.status === 'pendiente');
-    const inProgress  = mActs.filter(a => a.status === 'en_progreso');
-    const done        = mActs.filter(a => a.status === 'completada');
-    const isCurrent   = month === currentMonthKey;
+    const unassigned = mActs.filter(a => !a.assigned_to && a.status === 'pendiente');
+    const assigned   = mActs.filter(a => !!a.assigned_to && a.status === 'pendiente');
+    const inProgress = mActs.filter(a => a.status === 'en_progreso');
+    const done       = mActs.filter(a => a.status === 'completada');
+    const isCurrent  = month === currentMonthKey;
 
     html += `<div class="month-section" style="margin-bottom:6px">
       <button class="month-toggle ${isCurrent?'open':''}" onclick="toggleMonth(this)">
-        <span style="font-size:.9rem">${month}</span>
-        <span style="display:flex;gap:6px;align-items:center">
-          ${inProgress.length ? `<span class="badge badge-progress" style="font-size:.62rem">${inProgress.length} prog</span>`:''}
-          ${unassigned.length ? `<span class="badge badge-pending" style="font-size:.62rem">${unassigned.length} sin asignar</span>`:''}
-          ${done.length ? `<span class="badge badge-done" style="font-size:.62rem">${done.length} ✓</span>`:''}
+        <span style="font-size:.88rem;font-weight:700">${month}</span>
+        <span style="display:flex;gap:5px;align-items:center">
+          ${inProgress.length ? `<span class="badge badge-progress" style="font-size:.6rem">${inProgress.length}</span>`:''}
+          ${unassigned.length ? `<span class="badge badge-pending" style="font-size:.6rem">${unassigned.length} sin asignar</span>`:''}
+          ${assigned.length   ? `<span style="font-size:.7rem;color:var(--text-muted)">${assigned.length} pend</span>`:''}
+          ${done.length       ? `<span class="badge badge-done" style="font-size:.6rem">${done.length} ✓</span>`:''}
           <span class="arrow">▾</span>
         </span>
       </button>
       <div class="month-content ${isCurrent?'open':''}">`;
 
-    // EN PROGRESO
     if(inProgress.length) {
-      html += `<div style="padding:6px 0 4px;font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--blue)">EN PROGRESO (${inProgress.length})</div>`;
+      html += `<div style="padding:6px 0 2px;font-size:.68rem;font-weight:700;letter-spacing:.8px;color:var(--blue)">● EN PROGRESO (${inProgress.length})</div>`;
       html += inProgress.map(a => renderSupCard(a)).join('');
     }
-
-    // SIN ASIGNAR
     if(unassigned.length) {
-      html += `<div style="padding:6px 0 4px;font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--yellow)">SIN ASIGNAR (${unassigned.length})</div>`;
+      html += `<div style="padding:6px 0 2px;font-size:.68rem;font-weight:700;letter-spacing:.8px;color:var(--yellow)">⚠ SIN ASIGNAR (${unassigned.length})</div>`;
       html += unassigned.map(a => renderSupCard(a)).join('');
     }
-
-    // ASIGNADAS PENDIENTES
     if(assigned.length) {
-      html += `<div style="padding:6px 0 4px;font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--text-muted)">PENDIENTES (${assigned.length})</div>`;
+      html += `<div style="padding:6px 0 2px;font-size:.68rem;font-weight:700;letter-spacing:.8px;color:var(--text-muted)">◌ PENDIENTES (${assigned.length})</div>`;
       html += assigned.map(a => renderSupCard(a)).join('');
     }
-
-    // COMPLETADAS
     if(done.length) {
-      html += `<div style="padding:6px 0 4px;font-size:.7rem;font-weight:700;letter-spacing:.8px;color:var(--green)">COMPLETADAS (${done.length})</div>`;
+      html += `<div style="padding:6px 0 2px;font-size:.68rem;font-weight:700;letter-spacing:.8px;color:var(--green)">✓ COMPLETADAS (${done.length})</div>`;
       html += done.map(a => renderSupCard(a)).join('');
     }
-
-    if(!mActs.length) {
+    if(!inProgress.length && !unassigned.length && !assigned.length && !done.length) {
       html += '<div class="empty" style="padding:12px"><div class="empty-text">Sin actividades</div></div>';
     }
 
