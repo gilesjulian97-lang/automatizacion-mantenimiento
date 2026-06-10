@@ -300,58 +300,69 @@ async function tecCancel(id) {
 
 async function uploadPhotos(actId, input, onDone) {
   if(!input.files.length) return;
-  showToast('Subiendo fotos...');
+  const files = Array.from(input.files);
+  showToast('Subiendo ' + files.length + ' foto(s)...');
+  
   const { data: act } = await sb.from('activities').select('title,scheduled_date,week_id').eq('id',actId).single();
   const week = allWeeks.find(w => w.id === act?.week_id);
   const d = new Date((act?.scheduled_date||today())+'T12:00:00');
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const folderPath = 'AVI-MEX/' + months[d.getMonth()] + ' ' + d.getFullYear() + '/' + (week?.label||'Sin semana') + '/' + (act?.title||'Actividad');
-  const files = Array.from(input.files);
+  
   let uploaded = 0;
-  await Promise.allSettled(files.map(async (file) => {
-    const reader = new FileReader();
-    const dataUrl = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
-    const b64 = dataUrl.split(',')[1];
-    const mimeType = file.type || 'image/jpeg';
+  // Process files sequentially to avoid overwhelming the script
+  for(const file of files) {
     try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise(res => { reader.onload = e => res(e.target.result); reader.readAsDataURL(file); });
+      const b64 = dataUrl.split(',')[1];
+      const fname = Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      
       const form = new FormData();
       form.append('file', b64);
-      form.append('filename', Date.now()+'_'+file.name);
+      form.append('filename', fname);
       form.append('folder', folderPath);
-      form.append('mimeType', mimeType);
+      form.append('mimeType', file.type||'image/jpeg');
+      
       const res = await fetch(APPS_SCRIPT, {method:'POST', body:form, redirect:'follow'});
       const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch(e) { data = {}; }
-      if(data.url) {
-        const { error: insErr } = await sb.from('activity_images').insert({ activity_id: actId, drive_file_url: data.url, filename: data.filename||'foto.jpg', uploaded_by: currentUser.id, uploaded_at: new Date().toISOString() });
+      let result = {};
+      try { result = JSON.parse(text); } catch(e) { console.error('Parse error:', text.slice(0,100)); }
+      
+      if(result.url || result.success) {
+        const url = result.url;
+        const { error: insErr } = await sb.from('activity_images').insert({
+          activity_id: actId,
+          drive_file_url: url,
+          filename: fname,
+          uploaded_by: currentUser.id,
+          uploaded_at: new Date().toISOString()
+        });
         if(insErr) {
-          showToast('Error BD: '+insErr.message, 'error');
-          console.error('Insert error:', insErr);
+          console.error('DB insert error:', insErr.message);
         } else {
           uploaded++;
         }
       } else {
-        showToast('Drive no devolvió URL', 'error');
-        console.error('No URL in response:', text);
+        console.error('Drive error:', JSON.stringify(result));
       }
     } catch(err) {
-      console.error('Upload error:', err);
+      console.error('File upload error:', err.message);
     }
-  }));
-  if(uploaded > 0) {
-    showToast(uploaded + ' foto(s) subida(s) ✓','success');
-    // Reload images in card
-    const imgGrid = document.getElementById('imgs-'+actId);
-    if(imgGrid) {
-      const { data: imgs } = await sb.from('activity_images').select('*').eq('activity_id', actId);
-      if(imgs && imgs.length) {
-        imgGrid.innerHTML = imgs.map(i => `<img src="${i.drive_file_url}" class="img-thumb">`).join('');
-      }
-    }
-  } else {
-    showToast('Error al subir fotos','error');
   }
+  
+  // Always reload images regardless of errors
+  const imgGrid = document.getElementById('imgs-'+actId);
+  if(imgGrid) {
+    const { data: imgs } = await sb.from('activity_images').select('*').eq('activity_id', actId);
+    if(imgs && imgs.length) {
+      imgGrid.innerHTML = imgs.map(i => '<img src="'+i.drive_file_url+'" class="img-thumb">').join('');
+    }
+  }
+  
+  if(uploaded > 0) showToast(uploaded+'/'+files.length+' foto(s) subida(s) ✓','success');
+  else showToast('Fotos en Drive pero error en BD','error');
+  
   if(onDone) onDone();
 }
 
