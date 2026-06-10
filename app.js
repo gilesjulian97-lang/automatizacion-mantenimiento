@@ -768,8 +768,15 @@ async function loadSupLista() {
       const d = new Date(a.scheduled_date+'T12:00:00');
       mKey = monthNames[d.getMonth()]+' '+d.getFullYear();
     } else if(a.scheduled_month) {
-      // scheduled_month is 1-12
-      mKey = monthNames[a.scheduled_month-1]+' 2026';
+      // scheduled_month is '2026-07' format
+      const parts = String(a.scheduled_month).split('-');
+      if(parts.length === 2) {
+        const yr = parts[0], mo = parseInt(parts[1])-1;
+        mKey = monthNames[mo]+' '+yr;
+      } else {
+        // fallback: numeric 1-12
+        mKey = monthNames[parseInt(a.scheduled_month)-1]+' 2026';
+      }
     } else {
       mKey = 'Sin mes asignado';
     }
