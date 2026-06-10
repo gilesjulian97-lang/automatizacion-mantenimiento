@@ -351,7 +351,7 @@ async function uploadPhotos(actId, input, onDone) {
     if(imgGrid) {
       const { data: imgs } = await sb.from('activity_images').select('*').eq('activity_id', actId);
       if(imgs && imgs.length) {
-        imgGrid.innerHTML = imgs.map(i => `<img src="${i.url}" class="img-thumb">`).join('');
+        imgGrid.innerHTML = imgs.map(i => `<img src="${i.drive_file_url}" class="img-thumb">`).join('');
       }
     }
   } else {
@@ -891,7 +891,7 @@ async function openEdit(id) {
   if(!a) return;
   const who = allUsers.find(u=>u.id===a.assigned_to);
   const imgs = await sb.from('activity_images').select('*').eq('activity_id',id);
-  const imgList = (imgs.data||[]).map(i=>`<img src="${i.url}" class="img-thumb">`).join('');
+  const imgList = (imgs.data||[]).map(i=>`<img src="${i.drive_file_url}" class="img-thumb">`).join('');
 
   el('edit-title-label').textContent = a.title;
   el('edit-content').innerHTML = `
