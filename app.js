@@ -507,11 +507,7 @@ async function loadSupDashboard() {
   if(cw) selectedWeekId = cw.id;
   
   // Build week chips
-  buildWeekChips('sup-week-chips', selectedWeekId, (wid) => {
-    selectedWeekId = wid;
-    el('sup-week-label').textContent = allWeeks.find(w=>w.id===wid)?.label || '';
-    loadSupDashboardData();
-  });
+  buildWeekChips('sup-week-chips', selectedWeekId);
   
   el('sup-week-label').textContent = cw?.label || 'Semana actual';
   await loadSupDashboardData();
@@ -1028,14 +1024,15 @@ function closeEdit() {
 }
 
 // ── WEEK CHIPS HELPER ──
-function buildWeekChips(containerId, activeId, onSelect) {
+function buildWeekChips(containerId, activeId) {
   const container = el(containerId);
   if(!container) return;
-  const todayStr = today();
   const cw = currentWeek();
   container.innerHTML = allWeeks.slice().reverse().map(w => {
-    const isCurrent = w.id === (cw?.id);
-    return `<div class="week-chip ${w.id===activeId?'active':''}" onclick="(${onSelect.toString()})('${w.id}')">
+    const isCurrent = w.id === cw?.id;
+    return `<div class="week-chip ${w.id===activeId?'active':''}" 
+      data-wid="${w.id}" data-container="${containerId}"
+      onclick="selectDashWeek(this)">
       ${w.label}${isCurrent?' ●':''}
     </div>`;
   }).join('');
@@ -1043,6 +1040,19 @@ function buildWeekChips(containerId, activeId, onSelect) {
     const a = container.querySelector('.week-chip.active');
     if(a) a.scrollIntoView({inline:'nearest',behavior:'auto'});
   }, 50);
+}
+
+function selectDashWeek(chip) {
+  const wid = chip.dataset.wid;
+  const containerId = chip.dataset.container;
+  // Update active chip in this container
+  chip.closest('.week-chips').querySelectorAll('.week-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  // Update selectedWeekId and reload
+  selectedWeekId = wid;
+  const week = allWeeks.find(w => w.id === wid);
+  if(week) el('sup-week-label').textContent = week.label;
+  loadSupDashboardData();
 }
 
 // ── AUTO START FIXED ──
