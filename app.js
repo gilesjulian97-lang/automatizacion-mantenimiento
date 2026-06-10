@@ -1086,30 +1086,22 @@ async function autoStartFixed() {
 
 // ── AUTO ROLLOVER (7am) ──
 async function autoRollover() {
-  const now = new Date();
-  if(now.getHours() < 7) return; // Only after 7am
   const todayStr = today();
-  // Get yesterday
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate()-1);
-  const yesterdayStr = dateStr(yesterday);
   
+  // Move ALL overdue pending activities (any date before today) to today
   const { data: overdue } = await sb.from('activities').select('*')
-    .eq('scheduled_date', yesterdayStr)
+    .lt('scheduled_date', todayStr)
     .neq('status', 'completada')
     .eq('is_fixed', false);
   
   if(!overdue || !overdue.length) return;
   
-  // Find week for today
   const cw = currentWeek();
-  
   for(const a of overdue) {
     await sb.from('activities').update({
       scheduled_date: todayStr,
       week_id: cw?.id || a.week_id,
-      status: 'pendiente',
-      started_at: null,
+      status: a.status === 'en_progreso' ? 'en_progreso' : 'pendiente',
       rolled_over: true
     }).eq('id', a.id);
   }
