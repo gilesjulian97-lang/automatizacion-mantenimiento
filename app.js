@@ -324,12 +324,7 @@ async function uploadPhotos(actId, input, onDone) {
       let data;
       try { data = JSON.parse(text); } catch(e) { data = {}; }
       if(data.url) {
-        const { error: insErr } = await sb.from('activity_images').insert({
-          activity_id: actId, 
-          url: data.url, 
-          uploaded_by: currentUser.id,
-          created_at: new Date().toISOString()
-        });
+        const { error: insErr } = await sb.from('activity_images').insert({ activity_id: actId, drive_file_url: data.url, filename: data.filename||'foto.jpg', uploaded_by: currentUser.id, uploaded_at: new Date().toISOString() });
         if(insErr) {
           showToast('Error BD: '+insErr.message, 'error');
           console.error('Insert error:', insErr);
