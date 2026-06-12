@@ -431,12 +431,28 @@ select.form-input { appearance: none; background-image: url("data:image/svg+xml,
 
       <div id="sup-stats" class="tab-panel">
         <div class="sec-title" style="margin-bottom:4px">Estadísticas</div>
-        <div class="sec-label" style="margin-bottom:14px">Avance y comparativas</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-          <button class="btn btn-primary btn-sm" onclick="downloadReport('week')">↓ Semanal</button>
-          <button class="btn btn-primary btn-sm" onclick="downloadReport('month')">↓ Mensual</button>
-          <button class="btn btn-primary btn-sm" onclick="downloadReport('year')">↓ Anual</button>
+        <div class="sec-label" style="margin-bottom:12px">Avance y comparativas</div>
+        <div style="margin-bottom:14px">
+          <div class="sec-label">Descargar semana</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+            <select class="form-input" id="stats-week-sel" style="flex:1;max-width:220px"></select>
+            <button class="btn btn-primary btn-sm" onclick="downloadReport('week')">↓ Descargar</button>
+          </div>
+          <div class="sec-label">Descargar mes</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+            <select class="form-input" id="stats-month-sel" style="flex:1;max-width:220px"></select>
+            <button class="btn btn-primary btn-sm" onclick="downloadReport('month')">↓ Descargar</button>
+          </div>
+          <div class="sec-label">Descargar año</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select class="form-input" id="stats-year-sel" style="flex:1;max-width:220px">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="downloadReport('year')">↓ Descargar</button>
+          </div>
         </div>
+        <div style="height:1px;background:var(--border);margin:12px 0"></div>
         <div id="stats-content"><div class="loading"><div class="spinner"></div>Generando...</div></div>
       </div>
     </div>

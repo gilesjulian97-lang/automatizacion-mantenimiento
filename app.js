@@ -855,6 +855,32 @@ async function loadSupStats() {
   const statsEl = el('stats-content');
   statsEl.innerHTML = '<div class="loading"><div class="spinner"></div>Generando...</div>';
   
+  // Populate week selector
+  const weekSel = el('stats-week-sel');
+  if(weekSel && !weekSel.options.length) {
+    const cw = currentWeek();
+    weekSel.innerHTML = allWeeks.slice().reverse().map(w =>
+      '<option value="'+w.id+'"'+(w.id===cw?.id?' selected':'')+'>'+w.label+'</option>'
+    ).join('');
+  }
+  
+  // Populate month selector
+  const monthSel = el('stats-month-sel');
+  if(monthSel && !monthSel.options.length) {
+    const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const now = new Date();
+    let opts = '';
+    for(let y = now.getFullYear(); y >= 2025; y--) {
+      const maxM = y === now.getFullYear() ? now.getMonth()+1 : 12;
+      for(let m = maxM; m >= 1; m--) {
+        const val = y+'-'+String(m).padStart(2,'0');
+        const label = monthNames[m-1]+' '+y;
+        opts += '<option value="'+val+'"'+(y===now.getFullYear()&&m===now.getMonth()+1?' selected':'')+'>'+label+'</option>';
+      }
+    }
+    monthSel.innerHTML = opts;
+  }
+  
   const cw = currentWeek();
   if(!cw){statsEl.innerHTML='<div class="empty"><div class="empty-text">Sin semana actual</div></div>';return;}
 
@@ -914,8 +940,128 @@ async function loadSupStats() {
   statsEl.innerHTML = html;
 }
 
-function downloadReport(type) {
-  showToast('Descarga próximamente disponible');
+async function downloadReport(type) {
+  showToast('Generando reporte...');
+  
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const now = new Date();
+  let title = '', acts = [], subtitle = '';
+
+  if(type === 'week') {
+    const weekSel = el('stats-week-sel');
+    const wid = weekSel ? weekSel.value : selectedWeekId;
+    const week = allWeeks.find(w => w.id === wid) || currentWeek();
+    title = 'Reporte Semanal';
+    subtitle = week ? week.label : 'Semana actual';
+    const { data } = await sb.from('activities').select('*').eq('week_id', week?.id).eq('is_fixed', false);
+    acts = data || [];
+  } else if(type === 'month') {
+    const monthSel = el('stats-month-sel');
+    const mVal = monthSel ? monthSel.value : (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+    const [year, month] = mVal.split('-').map(Number);
+    title = 'Reporte Mensual';
+    subtitle = monthNames[month-1] + ' ' + year;
+    const { data } = await sb.from('activities').select('*')
+      .gte('scheduled_date', year+'-'+String(month).padStart(2,'0')+'-01')
+      .lte('scheduled_date', year+'-'+String(month).padStart(2,'0')+'-31')
+      .eq('is_fixed', false);
+    acts = data || [];
+  } else if(type === 'year') {
+    const yearSel = el('stats-year-sel');
+    const yr = yearSel ? parseInt(yearSel.value) : now.getFullYear();
+    title = 'Reporte Anual';
+    subtitle = String(yr);
+    const { data } = await sb.from('activities').select('*')
+      .gte('scheduled_date', yr+'-01-01')
+      .lte('scheduled_date', yr+'-12-31')
+      .eq('is_fixed', false);
+    acts = data || [];
+  }
+
+  if(!acts.length) { showToast('Sin actividades para este período','error'); return; }
+
+  const done = acts.filter(a => a.status === 'completada');
+  const prog = acts.filter(a => a.status === 'en_progreso');
+  const pend = acts.filter(a => a.status === 'pendiente');
+  const pct = Math.round(done.length / acts.length * 100);
+
+  // Build HTML for print
+  let rows = '';
+  acts.forEach((a, i) => {
+    const who = allUsers.find(u => u.id === a.assigned_to);
+    const statusColor = a.status==='completada'?'#16a34a':a.status==='en_progreso'?'#1a6fd4':'#d97706';
+    const statusText = a.status==='completada'?'Completada':a.status==='en_progreso'?'En progreso':'Pendiente';
+    rows += `<tr style="background:${i%2===0?'#f9fafb':'#fff'}">
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px">${a.scheduled_date||'—'}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px">${a.title||''}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px">${a.type||'—'}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px">${who?.name||'Sin asignar'}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px;color:${statusColor};font-weight:700">${statusText}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;font-size:12px">${a.duration_minutes?Math.floor(a.duration_minutes/60)+'h '+a.duration_minutes%60+'m':'—'}</td>
+    </tr>`;
+  });
+
+  // By user stats
+  let userStats = '';
+  allUsers.forEach(u => {
+    const ua = acts.filter(a => a.assigned_to === u.id);
+    if(!ua.length) return;
+    const ud = ua.filter(a => a.status==='completada').length;
+    const up = Math.round(ud/ua.length*100);
+    userStats += `<tr>
+      <td style="padding:8px;border:1px solid #e5e7eb">${u.name}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center">${ua.length}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;color:#16a34a">${ud}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center">${ua.length-ud}</td>
+      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;font-weight:700">${up}%</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${title} - ${subtitle}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+      h1 { color: #1a6fd4; font-size: 22px; margin-bottom: 4px; }
+      h2 { font-size: 15px; color: #6b7280; margin-bottom: 20px; font-weight: normal; }
+      .summary { display: flex; gap: 16px; margin-bottom: 24px; }
+      .sum-box { background: #f4f6f9; border-radius: 8px; padding: 12px 20px; text-align: center; flex: 1; }
+      .sum-num { font-size: 28px; font-weight: 800; }
+      .sum-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+      th { background: #1a6fd4; color: white; padding: 10px 8px; text-align: left; font-size: 12px; }
+      @media print { button { display: none; } }
+    </style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <h1>AVI-MEX — ${title}</h1>
+        <h2>${subtitle} · Generado el ${now.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</h2>
+      </div>
+      <button onclick="window.print()" style="background:#1a6fd4;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    <div class="summary">
+      <div class="sum-box"><div class="sum-num" style="color:#1a6fd4">${acts.length}</div><div class="sum-label">Total</div></div>
+      <div class="sum-box"><div class="sum-num" style="color:#16a34a">${done.length}</div><div class="sum-label">Completadas</div></div>
+      <div class="sum-box"><div class="sum-num" style="color:#f26419">${prog.length}</div><div class="sum-label">En progreso</div></div>
+      <div class="sum-box"><div class="sum-num">${pend.length}</div><div class="sum-label">Pendientes</div></div>
+      <div class="sum-box"><div class="sum-num" style="color:#1a6fd4">${pct}%</div><div class="sum-label">Avance</div></div>
+    </div>
+    <h3 style="font-size:13px;letter-spacing:1px;color:#6b7280;margin-bottom:8px">RESUMEN POR TÉCNICO</h3>
+    <table><thead><tr><th>Técnico</th><th>Total</th><th>Completadas</th><th>Pendientes</th><th>Avance</th></tr></thead>
+    <tbody>${userStats}</tbody></table>
+    <h3 style="font-size:13px;letter-spacing:1px;color:#6b7280;margin-bottom:8px">DETALLE DE ACTIVIDADES</h3>
+    <table><thead><tr><th>Fecha</th><th>Actividad</th><th>Tipo</th><th>Asignado a</th><th>Estado</th><th>Duración</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'AVI-MEX_'+type+'_'+subtitle.replace(/\s/g,'-')+'.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Reporte descargado ✓','success');
 }
 
 // ── ADD ACTIVITY ──
